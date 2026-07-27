@@ -261,10 +261,32 @@ actually use the copilot — no native build.
 **raven host** (`src/integration/raven-copilot.ts`): the passive-tap wiring
 described above, for the native stealth overlay.
 
+### App services (browser host)
+
+The browser host layers a few app services around the engine — all optional to
+the engine, none of them imported by it:
+
+- **Settings** (`settings.ts` → `converse.config.json`): engine-config overrides
+  (models, budgets, cooldown), custom classifier/question prompts, and a persona.
+  These flow into the engine via `PromptCustomization` and `ConfigOverride`.
+- **Context** (`context.ts` → `context/*.md`): battlecards/product docs loaded and
+  relevance-ranked against the transcript, injected into question generation as
+  `PromptCustomization.contextBlock`. Swap in a real vector index later without
+  touching the engine.
+- **Recording + store** (`session.ts`, `store.ts`, `summary.ts`): every session is
+  captured (transcript + final slot states with evidence + nudges) and written to
+  `data/sessions/<id>.{json,summary.md,transcript.md}`; a JSON API serves History
+  and downloads.
+- **Drive export** (`gdrive.ts`): optional OAuth/service-account upload of the
+  same artifacts; gracefully disabled when unconfigured (local save always works).
+
+The engine stays pure: it never learns about files, Drive, HTTP, or settings —
+those are host concerns wired in through its small, optional dependency hooks.
+
 ## Testing
 
 - **Logic → fixtures.** `src/fixtures/*.json` replay through the real engine with
-  a scripted/offline `LlmClient` at full speed; 22 tests cover speaker tagging,
+  a scripted/offline `LlmClient` at full speed; 29 tests cover speaker tagging,
   utterance-end markers, merge rules, cadence, escalation timing, cooldown,
   mid-utterance guard, latency drop, and the portability contract.
 - **Feel → live.** Spam / latency / wrong-moment problems only surface live; after

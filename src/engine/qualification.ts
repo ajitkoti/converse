@@ -26,12 +26,24 @@ import type { GuidanceEvent, SlotId, SlotState, SlotStates, TranscriptEvent } fr
 const RANK: Record<SlotState["status"], number> = { empty: 0, partial: 1, covered: 2 };
 const MAX_EVIDENCE = 5;
 
+/** Optional prompt customization (custom system prompts, product context, persona). */
+export interface PromptCustomization {
+  classifierSystem?: string;
+  questionSystem?: string;
+  /** product/battlecard context injected into question generation */
+  contextBlock?: string;
+  /** persona hint, e.g. "CFO — cares about ROI and risk" */
+  persona?: string;
+}
+
 export interface EngineDeps {
   llm: LlmClient;
   config?: EngineConfig;
   logger?: JsonlLogger;
   /** monotonic clock in ms for latency measurement; defaults to Date.now. */
   monotonicNow?: () => number;
+  /** custom prompts / injected context / persona */
+  prompts?: PromptCustomization;
 }
 
 export interface QualificationEngineEvents {
@@ -59,6 +71,7 @@ export class QualificationEngine extends EventEmitter {
   readonly #log: JsonlLogger;
   readonly #monotonic: () => number;
   readonly #slots: SlotDef[];
+  readonly #prompts: PromptCustomization;
 
   #states: SlotStates;
   #buffer: TranscriptEvent[] = []; // final content events (non-marker)
@@ -84,6 +97,7 @@ export class QualificationEngine extends EventEmitter {
     this.#log = deps.logger ?? nullLogger;
     this.#monotonic = deps.monotonicNow ?? (() => Date.now());
     this.#slots = this.#cfg.slots;
+    this.#prompts = deps.prompts ?? {};
     this.#states = initStates(this.#slots.map((s) => s.id));
   }
 
@@ -156,7 +170,12 @@ export class QualificationEngine extends EventEmitter {
 
     const windowEvents = this.#recentWindow(this.#cfg.classifier.windowSeconds);
     const windowText = renderWindow(windowEvents);
-    const { system, user, prefill } = buildClassifierPrompt(this.#slots, this.#states, windowText);
+    const { system, user, prefill } = buildClassifierPrompt(
+      this.#slots,
+      this.#states,
+      windowText,
+      this.#prompts.classifierSystem,
+    );
 
     let raw = "";
     try {
@@ -300,6 +319,11 @@ export class QualificationEngine extends EventEmitter {
       slot,
       windowText,
       this.#cfg.suggestion.maxWords,
+      {
+        system: this.#prompts.questionSystem,
+        contextBlock: this.#prompts.contextBlock,
+        persona: this.#prompts.persona,
+      },
     );
     const startedMono = this.#monotonic();
     let raw = "";

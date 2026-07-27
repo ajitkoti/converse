@@ -40,6 +40,7 @@ export function buildClassifierPrompt(
   slots: SlotDef[],
   states: SlotStates,
   windowText: string,
+  systemOverride?: string,
 ): { system: string; user: string; prefill: string } {
   const current = slots
     .map((s) => {
@@ -60,7 +61,7 @@ ${windowText || "(no speech yet)"}
 
 Return the JSON object now.`;
 
-  return { system: CLASSIFIER_SYSTEM, user, prefill: '{"updates":' };
+  return { system: systemOverride ?? CLASSIFIER_SYSTEM, user, prefill: '{"updates":' };
 }
 
 export interface ClassifierUpdate {

@@ -30,6 +30,52 @@ nothing to configure.
 - **Demo · rough call** — a vague prospect; the copilot nudges you with bridging
   questions at the pauses.
 
+When the call ends you get a **summary screen**: MEDDPICC coverage grid with the
+verbatim prospect quote behind each slot, the questions the copilot surfaced, and
+what's still open. Every session is auto-saved locally and shows up under
+**History**.
+
+## Features
+
+- **Live overlay** — 8-slot MEDDPICC rail (pulses the most overdue), one
+  bridging-question card at natural pauses, elapsed timer, live caption.
+- **Post-call summary + history** — coverage with evidence quotes and the nudges
+  given; browse and reopen past calls.
+- **Save transcripts & summaries** — auto-saved to `data/sessions/` as JSON +
+  Markdown; one-click **download** or **export to Google Drive**.
+- **Context via Markdown** — drop battlecards / product docs / ICP into
+  `context/` (or the **Context** tab); the copilot grounds its questions in the
+  most relevant ones.
+- **Custom prompts & settings** — edit the classifier and question prompts, set a
+  prospect **persona**, change models, cooldown, demo speed, and Drive folder from
+  the **Settings** tab (persisted to `converse.config.json`).
+- **Everything logged** — each classifier/suggestion decision is written to
+  `logs/*.jsonl` for tuning.
+
+## Saving to Google Drive
+
+The app always saves locally. To also push summaries/transcripts to Drive:
+
+1. In Google Cloud Console create an **OAuth client (Desktop app)**, download the
+   JSON, and set `GOOGLE_OAUTH_CLIENT=/path/to/client.json` in `.env`.
+2. Run `npm run connect-drive` once and approve — it saves `.gdrive-token.json`.
+3. Start the app, finish a call, and click **Export to Drive** on the summary. By
+   default it creates/uses a **"Converse Sessions"** folder (override with
+   `GDRIVE_FOLDER_ID` or the Settings field).
+
+(A service-account JSON via `GOOGLE_APPLICATION_CREDENTIALS` works too — share the
+target folder with the service-account email.)
+
+## Context & prompts
+
+- **Context:** any `.md` in `context/` is loaded and injected into question
+  generation (relevance-ranked to the live transcript, within a token budget).
+  Manage from the **Context** tab or on disk. Example files are included — replace
+  them with yours.
+- **Prompts:** the classifier and question prompts live in
+  `src/engine/prompts/` and can be overridden from the **Settings** tab without
+  touching code (blank = built-in).
+
 ### Go live on a real call
 
 1. `cp .env.example .env` and add your `DEEPGRAM_API_KEY`
@@ -52,23 +98,31 @@ Hotkeys in the overlay: **Esc** dismiss · **S** snooze the nudged topic 5 min.
 ## What's here
 
 ```
-src/server/            local server: serves the overlay, runs the engine, relays Deepgram
-public/                the browser overlay (slot rail, suggestion card, timer)
+public/                the browser app (nav, overlay, summary, history, context, settings)
+src/server/            local server + app services
+  index.ts             static + WebSocket + JSON API (history/settings/context/drive)
+  session.ts           per-connection: bus + engine + recording + export
+  deepgram.ts          live Deepgram connections (one per channel)
+  offline-llm.ts       deterministic classifier for demo/tests (no keys)
+  settings.ts          converse.config.json (prompts, persona, budgets, models)
+  context.ts           context/*.md loader + relevance-ranked injection
+  store.ts / summary.ts  session persistence + Markdown summary/transcript
+  gdrive.ts            optional Google Drive export
 src/engine/            the standalone engine (no Electron imports — enforced by a test)
   transcript-bus.ts    Deepgram (mic + system) → one TranscriptEvent stream
   qualification.ts     slot state machine + haiku classifier + escalation/suggestion
   prompts/             the LLM prompts, isolated (edited more than the code)
   config.json          single source of truth for every tunable
 src/integration/       reference glue for the raven Electron app (Deepgram tap → engine → IPC)
-src/fixtures/          good + bad discovery-call fixtures
-scripts/replay.ts      replay a fixture end-to-end; write the JSONL iteration log
-test/                  22 offline tests (replay fixtures through the real engine)
+context/               your Markdown context docs (examples included)
+scripts/               replay + connect-drive CLIs
+test/                  29 offline tests (engine + server modules)
 ```
 
 ## Developer commands
 
 ```bash
-npm test            # 22 tests, no network, no audio hardware
+npm test            # 29 tests, no network, no audio hardware
 npm run typecheck
 npm run replay                 # replay good-call in the terminal (offline classifier)
 npm run replay -- bad-call     # replay the vague/deflecting call

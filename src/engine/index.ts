@@ -21,7 +21,7 @@ export type {
 } from "./transcript-bus.js";
 
 export { QualificationEngine } from "./qualification.js";
-export type { EngineDeps } from "./qualification.js";
+export type { EngineDeps, PromptCustomization } from "./qualification.js";
 
 export { loadConfig, defaultConfig } from "./config.js";
 export type { EngineConfig, SlotDef, SlotBudget, ConfigOverride } from "./config.js";

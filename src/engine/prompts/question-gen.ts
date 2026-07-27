@@ -31,21 +31,33 @@ const SLOT_GUIDANCE: Record<string, string> = {
   competition: "Learn what else they're weighing, including doing nothing.",
 };
 
+export interface QuestionPromptOptions {
+  /** override the built-in system prompt entirely */
+  system?: string;
+  /** product/battlecard context (from context/*.md) to ground the question */
+  contextBlock?: string;
+  /** persona hint, e.g. "CFO — cares about ROI and risk" */
+  persona?: string;
+}
+
 export function buildQuestionPrompt(
   slot: SlotDef,
   windowText: string,
   maxWords: number,
+  opts: QuestionPromptOptions = {},
 ): { system: string; user: string; prefill: string } {
-  const system = QUESTION_SYSTEM.replace("{{MAX_WORDS}}", String(maxWords));
+  const system = (opts.system ?? QUESTION_SYSTEM).replace("{{MAX_WORDS}}", String(maxWords));
   const guidance = SLOT_GUIDANCE[slot.id] ?? `Advance coverage of ${slot.label}.`;
-  const user = `TARGET AREA: ${slot.label} (${slot.id})
-GOAL: ${guidance}
-
-RECENT TRANSCRIPT (hook your question onto what the PROSPECT said):
-${windowText || "(no recent speech)"}
-
-Return the JSON now.`;
-  return { system, user, prefill: '{"question":"' };
+  const parts = [`TARGET AREA: ${slot.label} (${slot.id})`, `GOAL: ${guidance}`];
+  if (opts.persona) parts.push(`PROSPECT PERSONA: ${opts.persona} — tune the question to what they care about.`);
+  if (opts.contextBlock) {
+    parts.push(
+      `\nYOUR PRODUCT / SALES CONTEXT (use it to make the question sharp and specific — never read it verbatim):\n${opts.contextBlock}`,
+    );
+  }
+  parts.push(`\nRECENT TRANSCRIPT (hook your question onto what the PROSPECT said):\n${windowText || "(no recent speech)"}`);
+  parts.push(`\nReturn the JSON now.`);
+  return { system, user: parts.join("\n"), prefill: '{"question":"' };
 }
 
 export interface QuestionOutput {
