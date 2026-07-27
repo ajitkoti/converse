@@ -283,8 +283,8 @@ function resetOverlay() {
   $("coach-stats").textContent = ""; $("obj-card").classList.add("hidden");
   $("timer").textContent = "00:00"; $("caption").innerHTML = ""; $("tx-list").innerHTML = ""; $("notes-area").value = "";
   $("rec").style.animation = ""; $("rec").style.background = "var(--green)";
-  $("transcript-panel").classList.add("hidden"); $("notes-panel").classList.add("hidden");
-  $("toggle-transcript").classList.remove("on"); $("toggle-notes").classList.remove("on");
+  $("transcript-panel").classList.add("hidden"); $("notes-panel").classList.add("hidden"); $("legend").classList.add("hidden");
+  $("toggle-transcript").classList.remove("on"); $("toggle-notes").classList.remove("on"); $("toggle-help").classList.remove("on");
   updateTalkMeter(); closeInspector(); dismissCard();
 }
 
@@ -569,6 +569,10 @@ $("card-dismiss").addEventListener("click", dismissCard);
 $("card-snooze").addEventListener("click", snoozeCurrent);
 $("toggle-transcript").addEventListener("click", () => togglePanel("transcript"));
 $("toggle-notes").addEventListener("click", () => togglePanel("notes"));
+$("toggle-help").addEventListener("click", () => {
+  const open = $("legend").classList.toggle("hidden") === false;
+  $("toggle-help").classList.toggle("on", open);
+});
 $("notes-area").addEventListener("input", (e) => {
   if (notesTimer) clearTimeout(notesTimer);
   const text = e.target.value;

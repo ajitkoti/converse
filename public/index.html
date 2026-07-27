@@ -16,6 +16,7 @@
         <button class="nav-link" data-view="history">History</button>
         <button class="nav-link" data-view="context">Context</button>
         <button class="nav-link" data-view="settings">Settings</button>
+        <button class="nav-link" data-view="help">Help</button>
       </div>
       <button id="theme-toggle" class="icon-round" title="Toggle theme">☾</button>
       <div id="drive-pill" class="pill">Drive: …</div>
@@ -55,6 +56,7 @@
       <!-- DASHBOARD -->
       <section id="view-dashboard" class="view hidden">
         <h2>Dashboard</h2>
+        <p class="sub">Trends across all your saved calls — average coverage, which areas you cover most and least, a coverage trend line, and your overall talk ratio.</p>
         <div id="stat-tiles" class="stat-tiles"></div>
         <div class="dash-cols">
           <div class="dash-card">
@@ -105,6 +107,7 @@
       <!-- SETTINGS -->
       <section id="view-settings" class="view hidden">
         <h2>Settings</h2>
+        <p class="sub">Keys and preferences are stored locally in <code>converse.config.json</code>. Leave a field blank to use the default. New to a setting? The <b>Help</b> tab explains each one.</p>
         <div class="settings-grid">
           <label class="field"><span>Prospect persona</span><input id="set-persona" placeholder="CFO — ROI & risk focused" /></label>
           <label class="field"><span>Demo speed (×)</span><input id="set-speed" type="number" min="1" max="20" /></label>
@@ -142,14 +145,14 @@
         <div class="summary-head">
           <h2>Call summary</h2>
           <div class="row-actions">
-            <button id="copy-summary" class="btn ghost">Copy</button>
-            <button id="copy-crm" class="btn ghost">Copy CRM fields</button>
-            <button id="dl-summary" class="btn ghost">Download</button>
-            <button id="dl-transcript" class="btn ghost">Transcript</button>
-            <button id="export-email" class="btn ghost">Email</button>
-            <button id="export-slack" class="btn ghost">Slack</button>
-            <button id="export-drive" class="btn">Drive</button>
-            <button id="summary-done" class="btn ghost">Done</button>
+            <button id="copy-summary" class="btn ghost" title="Copy the summary to your clipboard">Copy</button>
+            <button id="copy-crm" class="btn ghost" title="Copy area-by-area fields to paste into your CRM">Copy CRM fields</button>
+            <button id="dl-summary" class="btn ghost" title="Download the summary as Markdown">Download</button>
+            <button id="dl-transcript" class="btn ghost" title="Download the full transcript">Transcript</button>
+            <button id="export-email" class="btn ghost" title="Open a pre-filled email draft">Email</button>
+            <button id="export-slack" class="btn ghost" title="Post to your Slack webhook (set it in Settings)">Slack</button>
+            <button id="export-drive" class="btn" title="Upload summary + transcript + JSON to Google Drive">Drive</button>
+            <button id="summary-done" class="btn ghost" title="Back to Home">Done</button>
           </div>
         </div>
         <div id="summary-meta" class="summary-meta"></div>
@@ -162,6 +165,109 @@
         <div id="summary-nudges" class="summary-nudges"></div>
         <div id="export-result" class="drive-result"></div>
         <div id="drive-result" class="drive-result"></div>
+      </section>
+
+      <!-- HELP -->
+      <section id="view-help" class="view hidden">
+        <h2>Help &amp; how-to</h2>
+        <p class="sub">Everything Converse does, and how to use it. Click a section to expand.</p>
+
+        <details class="help-card" open>
+          <summary>🚀 Getting started</summary>
+          <div class="help-body">
+            <p><b>Demo (no setup):</b> on <b>Home</b>, click <b>Demo · strong call</b> to watch the areas fill green, or <b>Demo · rough call</b> to see the copilot nudge you. Demos replay a scripted call in under a minute — no keys, no mic.</p>
+            <p><b>Go live:</b> add a <b>Deepgram API key</b> in <b>Settings</b> (and optionally an Anthropic key for sharper questions), then click <b>Go live</b>. Allow your microphone (that's you), and share your meeting tab with audio (that's the prospect). Your two voices are transcribed on separate channels, so a rep <i>asking</i> about budget never marks budget covered.</p>
+          </div>
+        </details>
+
+        <details class="help-card">
+          <summary>🟢 The live overlay</summary>
+          <div class="help-body">
+            <ul>
+              <li><b>The 8 dots (left):</b> your qualification areas. <span class="chip-dot grey"></span> grey = not covered, <span class="chip-dot amber"></span> amber = partial, <span class="chip-dot green"></span> green = covered. The <b>most overdue</b> area pulses. <b>Click any dot</b> to see its evidence, confidence, and an <b>“Ask about this now”</b> button.</li>
+              <li><b>Score</b> (e.g. 3/8) and <b>talk meter</b> (you vs prospect) update live in the top bar.</li>
+              <li><b>Coaching stats</b> (top-left): questions asked and your speaking pace (wpm).</li>
+              <li><b>Suggestion card</b> (bottom): a single bridging question at a natural pause — or instantly when you hit “Ask now”. Auto-dismisses after 25s.</li>
+              <li><b>Objection card</b> (amber, bottom-right): pops when the prospect objects, with the matching battlecard.</li>
+              <li><b>Transcript / Notes</b> buttons open side panels. Notes are saved into the summary.</li>
+            </ul>
+            <p class="hint">Hotkeys: <kbd>Esc</kbd> close/dismiss/end · <kbd>S</kbd> snooze the nudged area 5 min · <kbd>T</kbd> transcript · <kbd>N</kbd> notes.</p>
+          </div>
+        </details>
+
+        <details class="help-card">
+          <summary>🎯 Live coaching</summary>
+          <div class="help-body">
+            <p>Coaching watches <i>how</i> you run the call and nudges you in real time:</p>
+            <ul>
+              <li><b>Monologue</b> — you've been talking too long without a pause; ask a question.</li>
+              <li><b>Talk ratio</b> — you're talking too much of the time; let them talk.</li>
+              <li><b>Too few questions</b> — get them talking with an open question.</li>
+            </ul>
+            <p>The summary shows your talk ratio, questions asked, pace, and longest monologue (amber = worth improving).</p>
+          </div>
+        </details>
+
+        <details class="help-card">
+          <summary>⚠️ Objection detection &amp; battlecards</summary>
+          <div class="help-body">
+            <p>When the prospect raises a <b>price, timing, competitor, authority, skepticism,</b> or <b>status-quo</b> objection, an amber card surfaces the most relevant <b>battlecard</b> from your Context docs so you have an answer in the moment.</p>
+            <p>To make these useful, add battlecards in the <b>Context</b> tab (e.g. “battlecard-vs-workday”). Objections raised are listed in the summary.</p>
+          </div>
+        </details>
+
+        <details class="help-card">
+          <summary>🔀 Frameworks (MEDDPICC / BANT / SPICED)</summary>
+          <div class="help-body">
+            <p>By default the copilot tracks <b>MEDDPICC</b> (8 areas). In <b>Settings → Framework</b> switch live calls to <b>BANT</b> (Budget, Authority, Need, Timeline) or <b>SPICED</b> — the rail, time budgets, and classifier all adapt. (Demos always use MEDDPICC.)</p>
+          </div>
+        </details>
+
+        <details class="help-card">
+          <summary>📄 Context docs</summary>
+          <div class="help-body">
+            <p>Drop your battlecards, product one-pagers, ICP notes, and pricing into the <b>Context</b> tab (Markdown, one topic per file). The copilot pulls the most relevant doc into each suggested question and matches battlecards to objections — so guidance is grounded in <i>your</i> product, not generic.</p>
+          </div>
+        </details>
+
+        <details class="help-card">
+          <summary>🎛️ Persona, models &amp; custom prompts</summary>
+          <div class="help-body">
+            <ul>
+              <li><b>Persona</b> — set who you're selling to (e.g. “CFO — ROI &amp; risk”) so questions match what they care about.</li>
+              <li><b>Models &amp; cooldown</b> — choose the Claude model and how often nudges may fire.</li>
+              <li><b>Custom prompts</b> — override the classifier and question prompts entirely (blank = built-in; the default is shown as a placeholder to copy).</li>
+            </ul>
+          </div>
+        </details>
+
+        <details class="help-card">
+          <summary>📊 Summary, exports &amp; dashboard</summary>
+          <div class="help-body">
+            <p>After a call you get a <b>summary</b>: coverage grid with the exact prospect quote behind each area, talk ratio, coaching stats, objections, notes, and what's still open. Export it with:</p>
+            <ul>
+              <li><b>Copy</b> / <b>Copy CRM fields</b> — to clipboard.</li>
+              <li><b>Download</b> / <b>Transcript</b> — Markdown files.</li>
+              <li><b>Email</b> — a pre-filled draft · <b>Slack</b> — posts to your webhook (set in Settings) · <b>Drive</b> — uploads to Google Drive.</li>
+            </ul>
+            <p>The <b>Dashboard</b> aggregates all calls: average coverage, per-area cover rate, a coverage trend, and overall talk ratio.</p>
+          </div>
+        </details>
+
+        <details class="help-card">
+          <summary>🗑️ Your data (save, backup, delete)</summary>
+          <div class="help-body">
+            <p>Every call is saved locally (nothing leaves your machine except what you export to your own keys/Drive). In <b>History</b> you can delete one call, <b>Export backup (.json)</b>, <b>Export &amp; wipe all</b>, or <b>Delete all</b>. Wiping can't be undone — keep a backup if you might want the calls later.</p>
+          </div>
+        </details>
+
+        <details class="help-card">
+          <summary>💾 Google Drive &amp; Slack setup</summary>
+          <div class="help-body">
+            <p><b>Drive:</b> create an OAuth client (Desktop app) in Google Cloud, set <code>GOOGLE_OAUTH_CLIENT</code> in <code>.env</code>, run <code>npm run connect-drive</code> once.</p>
+            <p><b>Slack:</b> create an incoming webhook and paste its URL into <b>Settings → Slack webhook URL</b>. Then use <b>Slack</b> on the summary.</p>
+          </div>
+        </details>
       </section>
     </main>
 
@@ -180,11 +286,19 @@
           <span id="tm-label" class="tm-label">—</span>
         </div>
         <div class="hud-right">
-          <button id="toggle-transcript" class="chip" title="Transcript (T)">Transcript</button>
-          <button id="toggle-notes" class="chip" title="Notes (N)">Notes</button>
-          <button id="stop" class="stop" title="End (Esc)">End call</button>
+          <button id="toggle-help" class="chip" title="What am I looking at?">?</button>
+          <button id="toggle-transcript" class="chip" title="Live transcript (T)">Transcript</button>
+          <button id="toggle-notes" class="chip" title="Notes, saved with the call (N)">Notes</button>
+          <button id="stop" class="stop" title="End the call (Esc)">End call</button>
         </div>
       </header>
+
+      <div id="legend" class="legend hidden">
+        <div><b>Left rail:</b> <span class="chip-dot grey"></span> not covered · <span class="chip-dot amber"></span> partial · <span class="chip-dot green"></span> covered · pulsing = overdue. <b>Click a dot</b> for evidence + “Ask now”.</div>
+        <div><b>Cards:</b> the indigo card is a suggested question; an amber card is an objection with its battlecard.</div>
+        <div><b>Top bar:</b> score (covered/total), talk meter (you vs prospect), and live questions + words-per-minute.</div>
+        <div><b>Keys:</b> <kbd>Esc</kbd> dismiss / end · <kbd>S</kbd> snooze 5m · <kbd>T</kbd> transcript · <kbd>N</kbd> notes</div>
+      </div>
 
       <aside id="rail" class="rail"></aside>
       <div id="inspector" class="inspector hidden"></div>
