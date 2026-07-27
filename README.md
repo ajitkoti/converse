@@ -11,8 +11,12 @@ It's designed to plug into
 touching raven's audio pipeline** — but the engine is a standalone async module
 with zero Electron/UI knowledge, so it also runs server-side or in tests.
 
-See **[ARCHITECTURE.md](./ARCHITECTURE.md)** for the design, the raven
-integration points, and the overlay contract.
+## Documentation
+
+- **[GUIDE.md](./GUIDE.md)** — setup + how to use it (start here for using it on calls).
+- **[INSTALL.md](./INSTALL.md)** — install the Mac/Windows app, or run from source.
+- **[ARCHITECTURE.md](./ARCHITECTURE.md)** — how it's built, the raven integration
+  points, and the overlay contract.
 
 ## Install
 
