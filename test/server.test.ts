@@ -142,6 +142,13 @@ describe("SessionStore + summary", () => {
     expect(a.trend.length).toBe(1);
   });
 
+  it("sums LLM calls across sessions (and tolerates records without perf)", () => {
+    const store = new SessionStore(tmp);
+    store.save({ ...sampleRecord(), perf: { avgClassifierMs: 0, avgNudgeMs: 0, speculativeHits: 0, echoesSuppressed: 0, llmCalls: 7 } });
+    store.save({ ...sampleRecord(), id: makeSessionId(new Date("2026-07-28T10:00:00Z"), "ef01") }); // no perf
+    expect(store.analytics().totalLlmCalls).toBe(7);
+  });
+
   it("summary includes talk ratio and notes", () => {
     const md = buildSummaryMarkdown(sampleRecord());
     expect(md).toContain("Talk ratio");

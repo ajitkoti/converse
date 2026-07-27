@@ -122,11 +122,13 @@ export class SessionStore {
     let repMs = 0;
     let prospectMs = 0;
     let suggestions = 0;
+    let llmCalls = 0;
     let live = 0;
     for (const r of all) {
       const total = r.slotDefs.length || 1;
       coverageSum += coveredCount(r) / total;
       suggestions += r.suggestions.length;
+      llmCalls += r.perf?.llmCalls ?? 0;
       if (r.mode === "live") live++;
       repMs += r.talk?.repMs ?? 0;
       prospectMs += r.talk?.prospectMs ?? 0;
@@ -141,6 +143,7 @@ export class SessionStore {
       liveCalls: live,
       avgCoveragePct: n ? Math.round((coverageSum / n) * 100) : 0,
       totalSuggestions: suggestions,
+      totalLlmCalls: llmCalls,
       totalTalkMs: { repMs, prospectMs },
       slotCoverage: [...slotAgg.entries()].map(([id, v]) => ({
         id,

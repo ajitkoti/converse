@@ -92,6 +92,12 @@ try {
   check("summary shows coaching tiles", (await page.locator("#summary-coaching .coach-tile").count()) >= 3);
   check("summary shows perf latency tiles", (await page.textContent("#summary-coaching"))?.includes("latency"));
   check("summary has export buttons (Slack/Email/CRM)", (await page.locator("#export-slack, #export-email, #copy-crm").count()) === 3);
+  // AI deal debrief lands shortly after the summary (heuristic in demo mode)
+  await page.waitForFunction(() => document.querySelector("#summary-analysis .ai-debrief:not(.pending)"), null, { timeout: 15000 });
+  check("post-call AI debrief renders", (await page.locator("#summary-analysis .ai-debrief").count()) === 1);
+  check("AI debrief has went-well/red-flag columns", (await page.locator("#summary-analysis .ai-col").count()) >= 2);
+  check("AI debrief has a follow-up email", (await page.locator("#summary-analysis .ai-email pre").count()) === 1);
+  check("AI debrief shows a sentiment badge", (await page.locator("#summary-analysis .ai-sentiment").count()) === 1);
   await page.screenshot({ path: path.join(SHOTS, "3-summary.png") });
 
   // 8. Dashboard
@@ -100,6 +106,7 @@ try {
   const calls = await page.locator("#stat-tiles .tile .n").first().textContent();
   check("dashboard tiles populated", Number(calls) >= 1, `${calls} calls`);
   check("dashboard slot-coverage bars", await page.locator("#slot-coverage .cov-row").count() > 0);
+  check("dashboard has an LLM-calls tile", (await page.textContent("#stat-tiles"))?.includes("LLM calls"));
   await page.screenshot({ path: path.join(SHOTS, "4-dashboard.png") });
 
   // 9. History + search + reopen

@@ -44,8 +44,10 @@ nothing to configure.
 
 When the call ends you get a **summary screen**: MEDDPICC coverage grid with the
 verbatim prospect quote behind each slot, the questions the copilot surfaced, and
-what's still open. Every session is auto-saved locally and shows up under
-**History**.
+what's still open — plus an **AI deal debrief** (what went well, what didn't, how
+to improve, missed opportunities, red flags, budget + key decisions, sentiment,
+and a ready-to-send follow-up email). Every session is auto-saved locally and
+shows up under **History**.
 
 ## Features
 
@@ -53,6 +55,12 @@ what's still open. Every session is auto-saved locally and shows up under
   bridging-question card at natural pauses, elapsed timer, live caption.
 - **Post-call summary + history** — coverage with evidence quotes and the nudges
   given; browse and reopen past calls.
+- **AI deal debrief** — after each call, one LLM pass produces what went well /
+  didn't, how to improve, missed opportunities, red flags, budget + key decision
+  points, sentiment, and a drafted follow-up email. Falls back to a deterministic
+  debrief with no API key, so demos still produce one.
+- **Usage telemetry** — the dashboard tracks total real LLM calls across all
+  saved calls alongside coverage, live calls, and nudges.
 - **Save transcripts & summaries** — auto-saved to `data/sessions/` as JSON +
   Markdown; one-click **download** or **export to Google Drive**.
 - **Context via Markdown** — drop battlecards / product docs / ICP into
