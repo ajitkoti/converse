@@ -43,6 +43,7 @@ export interface SessionRecord {
     talkRatioRepPct: number;
   };
   objections?: Array<{ ts: number; type: string; label: string; doc?: string }>;
+  intel?: Array<{ ts: number; kind: "competitor" | "proof-point"; label: string; doc?: string }>;
   perf?: {
     avgClassifierMs: number;
     avgNudgeMs: number;

@@ -121,6 +121,7 @@
           <label class="field"><span>OpenAI API key <em id="oa-set" class="key-set"></em> <b class="qm" data-help="Your OpenAI key (platform.openai.com). Used when provider = OpenAI. Stored locally, never shown back.">?</b></span><input id="set-openai-key" type="password" placeholder="for GPT suggestions" autocomplete="off" /></label>
           <label class="field"><span>Framework (live calls) <b class="qm" data-help="Which framework to track live: MEDDPICC (default), BANT, or SPICED. The rail and time budgets adapt. Demos always use MEDDPICC.">?</b></span><select id="set-framework"></select></label>
           <label class="field"><span>Slack webhook URL <b class="qm" data-help="An incoming-webhook URL from Slack. With it set, the summary's 'Slack' button posts the recap to that channel.">?</b></span><input id="set-slack" placeholder="https://hooks.slack.com/services/… (optional)" autocomplete="off" /></label>
+          <label class="field"><span>Competitors <b class="qm" data-help="Comma-separated competitor names. When the prospect names one on a live call, a battlecard card pops up. Names from your battlecard filenames are added automatically.">?</b></span><input id="set-competitors" placeholder="e.g. Workday, Salesforce, Gong (comma-separated)" autocomplete="off" /></label>
           <label class="check"><input id="set-autosave" type="checkbox" /> <span>Auto-save every session locally <b class="qm" data-help="Keep a copy of every finished call in data/sessions/ (JSON + summary + transcript). Turn off to keep nothing on disk.">?</b></span></label>
           <label class="check"><input id="set-usecontext" type="checkbox" /> <span>Inject context docs into suggestions <b class="qm" data-help="Feed your Context docs (battlecards, product) into the question generator so nudges are specific to your product.">?</b></span></label>
         </div>
@@ -171,6 +172,7 @@
         <div id="summary-analysis" class="summary-analysis"></div>
         <div id="summary-grid" class="summary-grid"></div>
         <div id="summary-objections" class="summary-objections"></div>
+        <div id="summary-intel" class="summary-intel"></div>
         <div id="summary-next" class="summary-next"></div>
         <div id="summary-notes" class="summary-notes"></div>
         <div id="summary-nudges" class="summary-nudges"></div>
@@ -236,10 +238,18 @@
         </details>
 
         <details class="help-card">
-          <summary>⚠️ Objection detection &amp; battlecards</summary>
+          <summary>⚠️ Objection detection &amp; objection trees</summary>
           <div class="help-body">
-            <p>When the prospect raises a <b>price, timing, competitor, authority, skepticism,</b> or <b>status-quo</b> objection, an amber card surfaces the most relevant <b>battlecard</b> from your Context docs so you have an answer in the moment.</p>
-            <p>To make these useful, add battlecards in the <b>Context</b> tab (e.g. “battlecard-vs-workday”). Objections raised are listed in the summary.</p>
+            <p>When the prospect raises a <b>price, timing, competitor, authority, skepticism,</b> or <b>status-quo</b> objection, an amber card surfaces the most relevant <b>battlecard</b> from your Context docs — plus a numbered <b>objection tree</b>: a multi-step response flow (<i>acknowledge → reframe → evidence → advance</i>) with ready-to-say lines, so you don't just get a doc, you get a play.</p>
+            <p>To make the battlecards useful, add them in the <b>Context</b> tab (e.g. “battlecard-vs-workday”). Objections raised are listed in the summary.</p>
+          </div>
+        </details>
+
+        <details class="help-card">
+          <summary>🏁 Competitive intel &amp; case-study surfacing</summary>
+          <div class="help-body">
+            <p>When the prospect <b>names a competitor</b>, a blue card pops up with your head-to-head <b>battlecard</b>. When they ask for <b>proof</b> — a case study, a reference, ROI, "customers like us" — the card surfaces the most relevant <b>case study / proof point</b> instead.</p>
+            <p>Competitors are recognized from a built-in list, anything you add under <b>Settings → Competitors</b>, and names inferred from your battlecard filenames (so <code>battlecard-vs-workday</code> teaches it "Workday" automatically). Add case studies in <b>Context</b> (e.g. “case-study-northwind”). Everything surfaced is listed in the summary under <b>In-call intelligence</b>.</p>
           </div>
         </details>
 
@@ -358,7 +368,14 @@
       <div id="obj-card" class="obj-card hidden">
         <div class="obj-tag">⚠ <span id="obj-label"></span> objection <span id="obj-doc" class="obj-doc"></span></div>
         <div id="obj-snippet" class="obj-snippet"></div>
+        <ol id="obj-steps" class="obj-steps"></ol>
         <button id="obj-dismiss" class="btn ghost">Got it</button>
+      </div>
+
+      <div id="intel-card" class="intel-card hidden">
+        <div class="intel-tag"><span id="intel-icon">🏁</span> <span id="intel-label"></span> <span id="intel-doc" class="obj-doc"></span></div>
+        <div id="intel-snippet" class="obj-snippet"></div>
+        <button id="intel-dismiss" class="btn ghost">Got it</button>
       </div>
 
       <aside id="transcript-panel" class="side-panel hidden">

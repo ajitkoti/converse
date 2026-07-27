@@ -35,6 +35,8 @@ export interface UserSettings {
   framework?: string;
   /** Slack incoming-webhook URL for post-call export */
   slackWebhookUrl?: string;
+  /** extra competitor names for in-call competitive-intel surfacing */
+  competitors?: string[];
 }
 
 export class Settings {

@@ -438,6 +438,24 @@ input:focus, textarea:focus { outline: none; border-color: rgba(99,102,241,0.6);
 .obj-tag { font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em; color: #fdba74; margin-bottom: 8px; }
 .obj-doc { color: var(--dim); text-transform: none; letter-spacing: 0; }
 .obj-snippet { font-size: 13.5px; line-height: 1.5; color: var(--muted); white-space: pre-wrap; max-height: 180px; overflow: auto; margin-bottom: 12px; }
+.obj-steps { list-style: none; counter-reset: step; margin: 0 0 12px; padding: 0; max-height: 240px; overflow: auto; }
+.obj-steps li { counter-increment: step; position: relative; padding: 7px 10px 7px 30px; border-left: 2px solid rgba(251,146,60,0.4); margin-bottom: 6px; }
+.obj-steps li::before { content: counter(step); position: absolute; left: 8px; top: 7px; width: 15px; height: 15px; border-radius: 50%; background: rgba(251,146,60,0.9); color: #201008; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+.obj-steps li b { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: #fdba74; }
+.obj-steps li span { display: block; font-size: 13px; color: var(--text); line-height: 1.45; margin-top: 2px; }
+
+/* Intel card (competitor / proof-point) — cool blue vs the objection's amber */
+.intel-card {
+  position: absolute; bottom: 84px; left: 26px; width: min(380px, 84vw);
+  background: linear-gradient(180deg, rgba(20, 34, 48, 0.94), rgba(14, 22, 34, 0.94));
+  border: 1px solid rgba(34, 211, 238, 0.5); border-radius: 16px; padding: 16px 18px;
+  box-shadow: var(--shadow), 0 0 30px rgba(34, 211, 238, 0.15); z-index: 6;
+}
+.intel-tag { font-size: 12px; letter-spacing: 0.02em; color: var(--accent-2); margin-bottom: 8px; font-weight: 600; }
+.summary-intel { margin-top: 20px; }
+.summary-intel h3 { font-size: 15px; margin: 0 0 8px; }
+.intel-row { background: rgba(34,211,238,0.07); border: 1px solid rgba(34,211,238,0.22); border-radius: 10px; padding: 9px 13px; margin-bottom: 8px; font-size: 13.5px; }
+.intel-row .when { color: var(--accent-2); font-size: 11px; margin-right: 8px; font-variant-numeric: tabular-nums; }
 
 /* Summary coaching + objections */
 .summary-coaching { display: flex; gap: 10px; flex-wrap: wrap; margin: 4px 0 18px; }

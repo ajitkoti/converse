@@ -116,6 +116,7 @@ function handle(msg) {
     case "drive": renderDriveResult(msg); break;
     case "coaching": toast("🎯 " + msg.signal.message, "warn"); break;
     case "objection": onObjection(msg); break;
+    case "intel": onIntel(msg); break;
     case "export": renderExportResult(msg); break;
     case "ended":
       $("rec").style.animation = "none"; $("rec").style.background = "var(--dim)";
@@ -199,9 +200,22 @@ function onObjection(msg) {
   $("obj-label").textContent = msg.label;
   $("obj-doc").textContent = msg.doc ? `· ${msg.doc}` : "";
   $("obj-snippet").textContent = msg.snippet || "No matching battlecard — add one in Context.";
+  $("obj-steps").innerHTML = (msg.steps || []).map((s) =>
+    `<li><b>${escapeHtml(s.label)}</b><span>${escapeHtml(s.say)}</span></li>`).join("");
   $("obj-card").classList.remove("hidden");
   if (objTimer) clearTimeout(objTimer);
-  objTimer = setTimeout(() => $("obj-card").classList.add("hidden"), 30000);
+  objTimer = setTimeout(() => $("obj-card").classList.add("hidden"), 45000);
+}
+let intelTimer = null;
+function onIntel(msg) {
+  $("intel-icon").textContent = msg.kind === "competitor" ? "🏁" : "📊";
+  $("intel-label").textContent = msg.label;
+  $("intel-doc").textContent = msg.doc ? `· ${msg.doc}` : "";
+  $("intel-snippet").textContent = msg.snippet ||
+    (msg.kind === "competitor" ? "No battlecard yet — add one in Context (e.g. battlecard-vs-…)." : "No case study yet — add a proof point in Context.");
+  $("intel-card").classList.remove("hidden");
+  if (intelTimer) clearTimeout(intelTimer);
+  intelTimer = setTimeout(() => $("intel-card").classList.add("hidden"), 45000);
 }
 function updateTalkMeter() {
   const total = talk.repMs + talk.prospectMs;
@@ -324,7 +338,7 @@ async function begin(mode, fixture) {
 function endCall() { send({ type: "stop" }); if (audioStop) audioStop(); }
 function resetOverlay() {
   elapsedMs = 0; currentSlot = null; talk = { repMs: 0, prospectMs: 0 }; coach = { repWords: 0, questions: 0 };
-  $("coach-stats").textContent = ""; $("obj-card").classList.add("hidden");
+  $("coach-stats").textContent = ""; $("obj-card").classList.add("hidden"); $("intel-card").classList.add("hidden");
   perf = { clf: null, nudge: null, spec: false }; $("perf").textContent = "";
   $("timer").textContent = "00:00"; $("caption").innerHTML = ""; $("tx-list").innerHTML = ""; $("notes-area").value = "";
   $("rec").style.animation = ""; $("rec").style.background = "var(--green)";
@@ -372,6 +386,11 @@ function renderSummary(rec, opts = {}) {
   $("summary-objections").innerHTML = rec.objections && rec.objections.length
     ? `<h3>Objections raised (${rec.objections.length})</h3>` + rec.objections.map((o) =>
         `<div class="obj-row"><span class="when">${fmt(o.ts)}</span><b>${escapeHtml(o.label)}</b>${o.doc ? ` — battlecard: ${escapeHtml(o.doc)}` : ""}</div>`).join("")
+    : "";
+
+  $("summary-intel").innerHTML = rec.intel && rec.intel.length
+    ? `<h3>In-call intelligence (${rec.intel.length})</h3>` + rec.intel.map((i) =>
+        `<div class="intel-row"><span class="when">${fmt(i.ts)}</span>${i.kind === "competitor" ? "🏁" : "📊"} <b>${escapeHtml(i.label)}</b>${i.doc ? ` — surfaced: ${escapeHtml(i.doc)}` : ""}</div>`).join("")
     : "";
 
   $("summary-grid").innerHTML = rec.slotDefs.map((d) => {
@@ -609,6 +628,7 @@ function fillSettings() {
     .map((f) => `<option value="${f.id}">${f.name}</option>`).join("");
   fwSel.value = s.framework || "meddpicc";
   $("set-slack").value = s.slackWebhookUrl || "";
+  $("set-competitors").value = (s.competitors || []).join(", ");
 }
 async function saveSettings() {
   const patch = {
@@ -621,6 +641,7 @@ async function saveSettings() {
     questionPrompt: $("set-question-prompt").value.trim(),
     framework: $("set-framework").value,
     slackWebhookUrl: $("set-slack").value.trim() || undefined,
+    competitors: $("set-competitors").value.split(",").map((c) => c.trim()).filter(Boolean),
     config: { models: { classifier: $("set-model-classifier").value.trim() || undefined, questionGen: $("set-model-question").value.trim() || undefined }, suggestion: $("set-cooldown").value ? { cooldownSeconds: Number($("set-cooldown").value) } : undefined },
   };
   const dg = $("set-deepgram-key").value.trim(); const an = $("set-anthropic-key").value.trim(); const oa = $("set-openai-key").value.trim();
@@ -718,6 +739,7 @@ $("copy-crm").addEventListener("click", copyCrm);
 $("export-email").addEventListener("click", emailSummary);
 $("export-slack").addEventListener("click", () => { send({ type: "export-slack" }); toast("Posting to Slack…", "info"); });
 $("obj-dismiss").addEventListener("click", () => $("obj-card").classList.add("hidden"));
+$("intel-dismiss").addEventListener("click", () => $("intel-card").classList.add("hidden"));
 $("export-drive").addEventListener("click", () => { send({ type: "export-drive" }); toast("Uploading to Google Drive…", "info"); });
 $("settings-save").addEventListener("click", saveSettings);
 $("drive-connect").addEventListener("click", connectDrive);
