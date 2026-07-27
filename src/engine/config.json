@@ -1,0 +1,52 @@
+{
+  "$comment": "SINGLE SOURCE OF TRUTH for every tunable. Budgets/cooldowns/windows/models/slot-schema all live here so behavior is edited without touching code. Times in the 'budgets' block are SECONDS of call time; everything else states its unit in the key name.",
+
+  "models": {
+    "classifier": "claude-haiku-4-5",
+    "questionGen": "claude-haiku-4-5"
+  },
+
+  "deepgram": {
+    "utterance_end_ms": 1000,
+    "interim_results": true
+  },
+
+  "classifier": {
+    "everySeconds": 20,
+    "everyFinalUtterances": 6,
+    "windowSeconds": 90,
+    "maxOutputTokens": 1024
+  },
+
+  "suggestion": {
+    "windowSeconds": 60,
+    "cooldownSeconds": 90,
+    "latencyBudgetMs": 2000,
+    "dropIfExceedsMs": 2500,
+    "maxWords": 20,
+    "maxOutputTokens": 200,
+    "snoozeSeconds": 300
+  },
+
+  "slots": [
+    { "id": "identifyPain", "label": "Pain", "framework": "MEDDPICC" },
+    { "id": "metrics", "label": "Metrics", "framework": "MEDDPICC" },
+    { "id": "economicBuyer", "label": "Econ Buyer", "framework": "MEDDPICC" },
+    { "id": "decisionCriteria", "label": "Criteria", "framework": "MEDDPICC" },
+    { "id": "decisionProcess", "label": "Process", "framework": "MEDDPICC" },
+    { "id": "paperProcess", "label": "Paper", "framework": "MEDDPICC" },
+    { "id": "champion", "label": "Champion", "framework": "MEDDPICC" },
+    { "id": "competition", "label": "Competition", "framework": "MEDDPICC" }
+  ],
+
+  "budgets": {
+    "identifyPain": { "expectPartialBy": 600, "escalateBy": 900 },
+    "metrics": { "expectPartialBy": 900, "escalateBy": 1200 },
+    "decisionCriteria": { "escalateBy": 1500 },
+    "decisionProcess": { "escalateBy": 1500 },
+    "economicBuyer": { "escalateBy": 1800 },
+    "champion": { "escalateBy": 1800 },
+    "competition": { "escalateBy": 1500 },
+    "paperProcess": { "escalateBy": 2100 }
+  }
+}

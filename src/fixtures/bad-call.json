@@ -1,0 +1,29 @@
+{
+  "$comment": "A BAD discovery call: the prospect deflects and gives vague, non-committal answers. A good classifier should leave most slots empty, and vague answers must NOT be scored 'covered' (economicBuyer stays at most 'partial'). Also seeds the known failure mode where REP speech names budget/EB but the PROSPECT never confirms — those must not advance any slot.",
+  "events": [
+    { "s": "rep", "t": "thanks for hopping on, how are things going over there", "start": 0, "end": 4 },
+    { "u": "rep", "at": 4.4 },
+    { "s": "prospect", "t": "yeah you know things are kind of busy, the usual", "start": 5, "end": 9 },
+    { "u": "prospect", "at": 9.5 },
+    { "s": "rep", "t": "totally, is there a particular problem you are hoping to solve", "start": 10, "end": 15 },
+    { "u": "rep", "at": 15.4 },
+    { "s": "prospect", "t": "not really sure yet, we are just kind of exploring options at this point", "start": 16, "end": 22 },
+    { "u": "prospect", "at": 22.5 },
+    { "s": "rep", "t": "understood, do you have a sense of the budget or what the cfo would approve for something like this", "start": 23, "end": 30 },
+    { "u": "rep", "at": 30.4 },
+    { "s": "prospect", "t": "probably someone in finance would need to weigh in, i could not tell you a number", "start": 31, "end": 38 },
+    { "u": "prospect", "at": 38.5 },
+    { "s": "rep", "t": "fair enough, what would matter most in evaluating a solution", "start": 39, "end": 44 },
+    { "u": "rep", "at": 44.4 },
+    { "s": "prospect", "t": "honestly it depends, we would have to see", "start": 45, "end": 49 },
+    { "u": "prospect", "at": 49.5 },
+    { "s": "rep", "t": "no worries, how do decisions like this usually get made on your team", "start": 50, "end": 55 },
+    { "u": "rep", "at": 55.4 },
+    { "s": "prospect", "t": "hard to say, it varies a lot depending on the quarter", "start": 56, "end": 61 },
+    { "u": "prospect", "at": 61.5 },
+    { "s": "rep", "t": "are you evaluating any other tools", "start": 62, "end": 65 },
+    { "u": "rep", "at": 65.4 },
+    { "s": "prospect", "t": "maybe, i would have to check with the team and get back to you", "start": 66, "end": 71 },
+    { "u": "prospect", "at": 71.5 }
+  ]
+}

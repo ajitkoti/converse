@@ -1,0 +1,14 @@
+node_modules/
+dist/
+release/
+*.log
+logs/
+data/
+.env
+.env.local
+.DS_Store
+coverage/
+
+# user-generated / secrets
+converse.config.json
+.gdrive-token.json

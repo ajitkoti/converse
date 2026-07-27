@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Converse · Sales Qualification Copilot</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <nav id="nav" class="nav">
+      <div class="nav-brand"><span class="bolt">⚡</span> Converse</div>
+      <div class="nav-links">
+        <button class="nav-link active" data-view="home">Home</button>
+        <button class="nav-link" data-view="dashboard">Dashboard</button>
+        <button class="nav-link" data-view="history">History</button>
+        <button class="nav-link" data-view="context">Context</button>
+        <button class="nav-link" data-view="settings">Settings</button>
+      </div>
+      <button id="theme-toggle" class="icon-round" title="Toggle theme">☾</button>
+      <div id="drive-pill" class="pill">Drive: …</div>
+    </nav>
+
+    <main id="main" class="main">
+      <!-- HOME -->
+      <section id="view-home" class="view">
+        <div class="hero">
+          <h1>Live sales qualification copilot</h1>
+          <p class="sub">Real-time MEDDPICC coverage, time-budgeted escalation, and one contextual question at the right pause. Runs locally.</p>
+        </div>
+        <div class="choices">
+          <button class="choice primary" data-mode="demo" data-fixture="good-call">
+            <span class="ch-title">▶ Demo · strong call</span>
+            <span class="ch-sub">Watch the slots fill green as a great prospect reveals everything.</span>
+          </button>
+          <button class="choice" data-mode="demo" data-fixture="bad-call">
+            <span class="ch-title">▶ Demo · rough call</span>
+            <span class="ch-sub">A vague prospect — see the copilot nudge you with a bridging question.</span>
+          </button>
+          <button class="choice live" data-mode="live">
+            <span class="ch-title">● Go live</span>
+            <span class="ch-sub">Your mic + a shared meeting tab. Add a Deepgram key in Settings.</span>
+          </button>
+        </div>
+        <div class="home-row">
+          <label class="mini-field">
+            <span>Prospect persona (optional)</span>
+            <input id="home-persona" placeholder="e.g. CFO — cares about ROI and risk" />
+          </label>
+        </div>
+        <div id="home-recent" class="recent"></div>
+        <div id="setup-status" class="setup-status"></div>
+      </section>
+
+      <!-- DASHBOARD -->
+      <section id="view-dashboard" class="view hidden">
+        <h2>Dashboard</h2>
+        <div id="stat-tiles" class="stat-tiles"></div>
+        <div class="dash-cols">
+          <div class="dash-card">
+            <h3>Coverage by area</h3>
+            <div id="slot-coverage" class="slot-cov"></div>
+          </div>
+          <div class="dash-card">
+            <h3>Coverage trend</h3>
+            <div id="trend"></div>
+            <h3 style="margin-top:20px">Talk ratio (all calls)</h3>
+            <div id="dash-talk"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- HISTORY -->
+      <section id="view-history" class="view hidden">
+        <div class="summary-head"><h2>Past sessions</h2>
+          <input id="history-search" class="search" placeholder="Search…" />
+        </div>
+        <div id="history-list" class="cards"></div>
+      </section>
+
+      <!-- CONTEXT -->
+      <section id="view-context" class="view hidden">
+        <h2>Context library</h2>
+        <p class="sub">Drop in battlecards, product one-pagers, ICP notes, objection handling. The copilot grounds its questions in these. Markdown, one topic per file.</p>
+        <div class="ctx-editor">
+          <input id="ctx-name" placeholder="file name (e.g. battlecard-vs-workday)" />
+          <textarea id="ctx-text" rows="8" placeholder="# Battlecard&#10;- Their weakness: ...&#10;- Our edge: ..."></textarea>
+          <div class="row-actions">
+            <button id="ctx-save" class="btn">Save doc</button>
+            <button id="ctx-reload" class="btn ghost">Reload from disk</button>
+          </div>
+        </div>
+        <div id="context-list" class="cards"></div>
+      </section>
+
+      <!-- SETTINGS -->
+      <section id="view-settings" class="view hidden">
+        <h2>Settings</h2>
+        <div class="settings-grid">
+          <label class="field"><span>Prospect persona</span><input id="set-persona" placeholder="CFO — ROI & risk focused" /></label>
+          <label class="field"><span>Demo speed (×)</span><input id="set-speed" type="number" min="1" max="20" /></label>
+          <label class="field"><span>Classifier model</span><input id="set-model-classifier" placeholder="claude-haiku-4-5" /></label>
+          <label class="field"><span>Question model</span><input id="set-model-question" placeholder="claude-haiku-4-5" /></label>
+          <label class="field"><span>Suggestion cooldown (s)</span><input id="set-cooldown" type="number" min="0" /></label>
+          <label class="field"><span>Google Drive folder id</span><input id="set-drive-folder" placeholder="(blank = auto 'Converse Sessions')" /></label>
+          <label class="field"><span>Deepgram API key <em id="dg-set" class="key-set"></em></span><input id="set-deepgram-key" type="password" placeholder="for live transcription" autocomplete="off" /></label>
+          <label class="field"><span>Anthropic API key <em id="an-set" class="key-set"></em></span><input id="set-anthropic-key" type="password" placeholder="optional — sharper live suggestions" autocomplete="off" /></label>
+          <label class="check"><input id="set-autosave" type="checkbox" /> <span>Auto-save every session locally</span></label>
+          <label class="check"><input id="set-usecontext" type="checkbox" /> <span>Inject context docs into suggestions</span></label>
+        </div>
+
+        <details class="prompt-box">
+          <summary>Classifier prompt <span class="hint">(blank = built-in)</span></summary>
+          <textarea id="set-classifier-prompt" rows="12"></textarea>
+          <button class="btn ghost small" data-reset="classifier">Reset to default</button>
+        </details>
+        <details class="prompt-box">
+          <summary>Question-generation prompt <span class="hint">(blank = built-in)</span></summary>
+          <textarea id="set-question-prompt" rows="12"></textarea>
+          <button class="btn ghost small" data-reset="question">Reset to default</button>
+        </details>
+
+        <div class="row-actions">
+          <button id="settings-save" class="btn">Save settings</button>
+          <span id="settings-saved" class="saved-note"></span>
+        </div>
+      </section>
+
+      <!-- SUMMARY -->
+      <section id="view-summary" class="view hidden">
+        <div class="summary-head">
+          <h2>Call summary</h2>
+          <div class="row-actions">
+            <button id="copy-summary" class="btn ghost">Copy</button>
+            <button id="dl-summary" class="btn ghost">Download</button>
+            <button id="dl-transcript" class="btn ghost">Transcript</button>
+            <button id="export-drive" class="btn">Export to Drive</button>
+            <button id="summary-done" class="btn ghost">Done</button>
+          </div>
+        </div>
+        <div id="summary-meta" class="summary-meta"></div>
+        <div id="summary-talk" class="summary-talk"></div>
+        <div id="summary-grid" class="summary-grid"></div>
+        <div id="summary-next" class="summary-next"></div>
+        <div id="summary-notes" class="summary-notes"></div>
+        <div id="summary-nudges" class="summary-nudges"></div>
+        <div id="drive-result" class="drive-result"></div>
+      </section>
+    </main>
+
+    <!-- In-call overlay (full screen) -->
+    <section id="overlay" class="overlay hidden">
+      <header class="hud">
+        <div class="hud-left">
+          <span id="rec" class="rec"></span>
+          <span id="timer" class="timer">00:00</span>
+          <span id="mode-badge" class="mode-badge"></span>
+          <span id="score" class="score">0/8</span>
+        </div>
+        <div id="talk-meter" class="talk-meter" title="Talk time — you vs prospect">
+          <div class="tm-bar"><i id="tm-rep"></i><b id="tm-pro"></b></div>
+          <span id="tm-label" class="tm-label">—</span>
+        </div>
+        <div class="hud-right">
+          <button id="toggle-transcript" class="chip" title="Transcript (T)">Transcript</button>
+          <button id="toggle-notes" class="chip" title="Notes (N)">Notes</button>
+          <button id="stop" class="stop" title="End (Esc)">End call</button>
+        </div>
+      </header>
+
+      <aside id="rail" class="rail"></aside>
+      <div id="inspector" class="inspector hidden"></div>
+      <div id="caption" class="caption"></div>
+
+      <div id="card" class="card hidden" role="status" aria-live="polite">
+        <div class="card-tag"><span id="card-slot"></span> · <span id="card-reason">nudge</span></div>
+        <div id="card-q" class="card-q"></div>
+        <div class="card-actions">
+          <button id="card-dismiss" class="btn ghost">Dismiss <kbd>Esc</kbd></button>
+          <button id="card-snooze" class="btn">Snooze 5m <kbd>S</kbd></button>
+        </div>
+      </div>
+
+      <aside id="transcript-panel" class="side-panel hidden">
+        <div class="sp-head">Transcript</div>
+        <div id="tx-list" class="tx-list"></div>
+      </aside>
+      <aside id="notes-panel" class="side-panel notes hidden">
+        <div class="sp-head">Notes <span class="meta-dim">saved with the call</span></div>
+        <textarea id="notes-area" placeholder="Jot anything — next steps, objections, quotes…"></textarea>
+      </aside>
+
+      <div id="toast" class="toast hidden"></div>
+    </section>
+
+    <script src="/app.js" type="module"></script>
+  </body>
+</html>

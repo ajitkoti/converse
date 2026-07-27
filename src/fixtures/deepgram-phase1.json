@@ -1,0 +1,16 @@
+{
+  "$comment": "Phase 1 bus fixture. Each item = { speaker, msg } where msg is a raw Deepgram live-streaming message as it arrives on the tapped socket. speaker is derived by raven from the connection source (mic->rep, system->prospect). Exercises: interim vs final, speaker tagging across both connections, UtteranceEnd markers, and noise messages (SpeechStarted / Metadata) that must be ignored.",
+  "messages": [
+    { "speaker": "rep", "msg": { "type": "SpeechStarted", "channel": [0, 1], "timestamp": 0.5 } },
+    { "speaker": "rep", "msg": { "type": "Results", "start": 0.5, "duration": 1.4, "is_final": false, "channel": { "alternatives": [{ "transcript": "hey thanks for" }] } } },
+    { "speaker": "rep", "msg": { "type": "Results", "start": 0.5, "duration": 2.1, "is_final": true, "speech_final": false, "channel": { "alternatives": [{ "transcript": "hey thanks for making the time today", "words": [{ "word": "hey", "start": 0.5, "end": 0.7, "speaker": 0 }] }] } } },
+    { "speaker": "rep", "msg": { "type": "UtteranceEnd", "channel": [0, 1], "last_word_end": 2.6 } },
+    { "speaker": "prospect", "msg": { "type": "Results", "start": 3.0, "duration": 1.8, "is_final": false, "channel": { "alternatives": [{ "transcript": "yeah of course happy" }] } } },
+    { "speaker": "prospect", "msg": { "type": "Results", "start": 3.0, "duration": 3.2, "is_final": true, "speech_final": true, "channel": { "alternatives": [{ "transcript": "yeah of course happy to chat we have been struggling with this for a while", "words": [{ "word": "yeah", "start": 3.0, "end": 3.2, "speaker": 0 }] }] } } },
+    { "speaker": "prospect", "msg": { "type": "Metadata", "transaction_key": "x", "request_id": "abc" } },
+    { "speaker": "prospect", "msg": { "type": "UtteranceEnd", "channel": [0, 1], "last_word_end": 6.4 } },
+    { "speaker": "rep", "msg": { "type": "Results", "start": 7.0, "duration": 2.0, "is_final": true, "channel": { "alternatives": [{ "transcript": "tell me more about that what is it costing you" }] } } },
+    { "speaker": "rep", "msg": { "type": "UtteranceEnd", "channel": [0, 1], "last_word_end": 9.1 } },
+    { "speaker": "prospect", "msg": { "type": "Results", "start": 10.0, "duration": 0, "is_final": true, "channel": { "alternatives": [{ "transcript": "" }] } } }
+  ]
+}

@@ -1,0 +1,64 @@
+name: Build installers
+
+# Builds the Mac (.dmg) and Windows (.exe) installers.
+# - On every push/dispatch: uploads them as workflow artifacts (download from the run).
+# - On a version tag (v*): also publishes a GitHub Release with the installers attached.
+
+on:
+  push:
+    branches: ["**"]
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            platform: mac
+            pattern: release/*.dmg
+          - os: windows-latest
+            platform: win
+            pattern: release/*.exe
+    runs-on: ${{ matrix.os }}
+    env:
+      # Playwright is only used by the local E2E script; don't fetch browsers in CI.
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build installer (${{ matrix.platform }})
+        run: npm run dist:${{ matrix.platform }}
+        env:
+          # Unsigned builds — no certificates configured. See INSTALL.md.
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: converse-${{ matrix.platform }}
+          path: ${{ matrix.pattern }}
+          if-no-files-found: error
+
+      - name: Attach to release (tags only)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ matrix.pattern }}
