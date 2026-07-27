@@ -10,9 +10,8 @@
 import { TranscriptBus } from "../engine/transcript-bus.js";
 import { QualificationEngine } from "../engine/qualification.js";
 import { loadConfig, type ConfigOverride, type EngineConfig } from "../engine/config.js";
-import { AnthropicLlmClient } from "../engine/anthropic-client.js";
-import { OpenAiLlmClient } from "../engine/openai-client.js";
 import type { LlmClient } from "../engine/llm.js";
+import { chooseLlm } from "./llm-factory.js";
 import type { JsonlLogger } from "../engine/logger.js";
 import type { GuidanceEvent, SlotId, Speaker, TranscriptEvent } from "../engine/types.js";
 import { loadCallFixture } from "../fixtures/load.js";
@@ -253,14 +252,11 @@ export class Session {
 
   /** Pick the LLM client for live suggestions based on provider + available keys. */
   #chooseLlm(): LlmClient {
-    const anthropic = this.#env.anthropicApiKey;
-    const openai = this.#env.openaiApiKey;
-    const provider = this.#env.aiProvider || (anthropic ? "anthropic" : openai ? "openai" : "none");
-    if (provider === "openai" && openai) return new OpenAiLlmClient({ apiKey: openai });
-    if (provider === "anthropic" && anthropic) return new AnthropicLlmClient({ apiKey: anthropic });
-    if (anthropic) return new AnthropicLlmClient({ apiKey: anthropic });
-    if (openai) return new OpenAiLlmClient({ apiKey: openai });
-    return new OfflineLlmClient();
+    return chooseLlm({
+      anthropicApiKey: this.#env.anthropicApiKey,
+      openaiApiKey: this.#env.openaiApiKey,
+      aiProvider: this.#env.aiProvider,
+    });
   }
 
   #makeDeepgram(speaker: Speaker): DeepgramLive {

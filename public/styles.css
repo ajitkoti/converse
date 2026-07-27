@@ -428,6 +428,26 @@ input:focus, textarea:focus { outline: none; border-color: rgba(99,102,241,0.6);
 .btn.danger { background: rgba(255,80,80,0.12); color: #ff9b9b; border-color: rgba(255,80,80,0.32); }
 .btn.danger:hover { background: rgba(255,80,80,0.22); }
 
+/* Pre-call brief */
+.precall-form { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; margin: 8px 0 20px; }
+.precall-form .mini-field { flex: 1; min-width: 220px; }
+.pc-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+.pc-badge { font-size: 12px; padding: 4px 12px; border-radius: 999px; border: 1px solid var(--stroke); color: var(--muted); }
+.pc-badge.llm { color: var(--accent-2); border-color: rgba(34,211,238,0.4); background: rgba(34,211,238,0.08); }
+.pc-card { background: var(--panel); border: 1px solid var(--stroke); border-radius: 14px; padding: 14px 16px; margin-bottom: 12px; }
+.pc-card h3 { font-size: 14px; margin: 0 0 8px; }
+.pc-opener { background: linear-gradient(180deg, rgba(99,102,241,0.1), rgba(34,211,238,0.04)); border-color: rgba(99,102,241,0.28); }
+.pc-quote { font-size: 15px; line-height: 1.55; color: var(--text); font-style: italic; }
+.pc-recap-meta { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+.pc-line { font-size: 13.5px; color: var(--muted); line-height: 1.5; margin-top: 3px; }
+.pc-line b { color: var(--text); }
+.pc-agenda { margin: 0; padding-left: 20px; }
+.pc-agenda li { font-size: 14px; color: var(--text); line-height: 1.5; margin-bottom: 5px; }
+.pc-obj { padding: 7px 0; border-bottom: 1px solid var(--stroke); }
+.pc-obj:last-child { border-bottom: none; }
+.pc-obj b { font-size: 13.5px; color: #fdba74; margin-right: 8px; }
+.pc-obj span { font-size: 13px; color: var(--muted); }
+
 /* Objection card (distinct from suggestion) */
 .obj-card {
   position: absolute; bottom: 84px; right: 26px; width: min(380px, 84vw);

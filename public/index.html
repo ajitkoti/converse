@@ -12,6 +12,7 @@
       <div class="nav-brand"><span class="bolt">⚡</span> Converse</div>
       <div class="nav-links">
         <button class="nav-link active" data-view="home">Home</button>
+        <button class="nav-link" data-view="precall">Pre-call</button>
         <button class="nav-link" data-view="dashboard">Dashboard</button>
         <button class="nav-link" data-view="history">History</button>
         <button class="nav-link" data-view="context">Context</button>
@@ -51,6 +52,18 @@
         </div>
         <div id="home-recent" class="recent"></div>
         <div id="setup-status" class="setup-status"></div>
+      </section>
+
+      <!-- PRE-CALL BRIEF -->
+      <section id="view-precall" class="view hidden">
+        <h2>Pre-call brief</h2>
+        <p class="sub">A one-screen briefing before you dial: who you're meeting, a recap of your last call, a suggested agenda (open gaps first), the objections you're likely to hit, and an opener. Built from your history — sharpened by AI when a key is set.</p>
+        <div class="precall-form">
+          <label class="mini-field"><span>Who are you meeting? (persona)</span><input id="pc-persona" placeholder="e.g. CFO — cares about ROI and risk" /></label>
+          <label class="mini-field"><span>Account (optional)</span><input id="pc-account" placeholder="e.g. Northwind Logistics" /></label>
+          <button id="pc-generate" class="btn">Generate brief</button>
+        </div>
+        <div id="precall-result" class="precall-result"></div>
       </section>
 
       <!-- DASHBOARD -->
@@ -219,6 +232,14 @@
               <li><b>Too few questions</b> — get them talking with an open question.</li>
             </ul>
             <p>The summary shows your talk ratio, questions asked, pace, and longest monologue (amber = worth improving).</p>
+          </div>
+        </details>
+
+        <details class="help-card">
+          <summary>📋 Pre-call brief</summary>
+          <div class="help-body">
+            <p>Open <b>Pre-call</b> before you dial, type who you're meeting (and optionally the account), and hit <b>Generate brief</b>. You get a one-screen prep: a suggested <b>opening line</b>, a <b>recap of your last call</b> with that contact (coverage, what's still open, objections, competitors named, notes), a <b>suggested agenda</b> that puts open qualification gaps first, and the <b>objections you're most likely to hit</b> based on your history.</p>
+            <p>It's built entirely from your saved calls, so it works offline. With an Anthropic or OpenAI key set, one AI pass sharpens the agenda, opener, and likely objections (look for the <b>✨ AI-sharpened</b> badge).</p>
           </div>
         </details>
 

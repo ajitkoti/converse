@@ -19,6 +19,10 @@ import { SessionStore } from "./store.js";
 import { DriveExporter, buildOAuthClient, oauthClientConfigured, DRIVE_SCOPES, TOKEN_PATH } from "./gdrive.js";
 import { frameworkList } from "./frameworks.js";
 import { buildSummaryMarkdown, buildTranscriptMarkdown } from "./summary.js";
+import { buildPreCallBrief, enhancePreCallBriefLLM } from "./precall.js";
+import { chooseLlm } from "./llm-factory.js";
+import { OfflineLlmClient } from "./offline-llm.js";
+import { loadConfig } from "../engine/config.js";
 import type { SlotId } from "../engine/types.js";
 
 export interface ServerOptions {
@@ -140,6 +144,25 @@ export async function startServer(opts: ServerOptions): Promise<RunningServer> {
         return;
       }
 
+      if (req.method === "GET" && p === "/api/precall-brief") {
+        const s = settings.get();
+        const brief = buildPreCallBrief(store, settings, {
+          persona: url.searchParams.get("persona") ?? undefined,
+          account: url.searchParams.get("account") ?? undefined,
+        });
+        const llm = chooseLlm({
+          anthropicApiKey: s.anthropicApiKey || env.ANTHROPIC_API_KEY,
+          openaiApiKey: s.openaiApiKey || env.OPENAI_API_KEY,
+          aiProvider: s.aiProvider,
+        });
+        if (llm instanceof OfflineLlmClient) return json(200, brief);
+        try {
+          const model = loadConfig(settings.configOverride()).models.questionGen;
+          return json(200, await enhancePreCallBriefLLM(llm, brief, model));
+        } catch {
+          return json(200, brief); // fall back to the heuristic brief on model error
+        }
+      }
       if (req.method === "GET" && p === "/api/history") return json(200, { sessions: store.list() });
       if (req.method === "GET" && p === "/api/analytics") return json(200, store.analytics());
       if (req.method === "POST" && p === "/api/session/delete") {

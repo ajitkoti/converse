@@ -47,6 +47,7 @@ function showView(name) {
   if (name === "context") renderContext();
   if (name === "settings") fillSettings();
   if (name === "dashboard") loadDashboard();
+  if (name === "precall") initPrecall();
 }
 function showApp() { nav.classList.remove("hidden"); mainEl.classList.remove("hidden"); overlay.classList.add("hidden"); }
 function showOverlayScreen() { nav.classList.add("hidden"); mainEl.classList.add("hidden"); overlay.classList.remove("hidden"); }
@@ -555,6 +556,50 @@ $("history-search").addEventListener("input", (e) => {
   const q = e.target.value.toLowerCase();
   renderHistoryList(historyCache.filter((s) => (new Date(s.startedAt).toLocaleString() + " " + s.mode).toLowerCase().includes(q)));
 });
+
+// ---------- Pre-call brief ----------
+let precallInit = false;
+function initPrecall() {
+  if (!precallInit) {
+    precallInit = true;
+    $("pc-persona").value = (state.settings && state.settings.persona) || "";
+    $("pc-generate").addEventListener("click", generateBrief);
+  }
+}
+async function generateBrief() {
+  const persona = $("pc-persona").value.trim();
+  const account = $("pc-account").value.trim();
+  $("precall-result").innerHTML = `<div class="ai-generating"><span class="spin"></span> Building your brief…</div>`;
+  try {
+    const qs = new URLSearchParams();
+    if (persona) qs.set("persona", persona);
+    if (account) qs.set("account", account);
+    const brief = await api.get(`/api/precall-brief?${qs.toString()}`);
+    renderBrief(brief);
+  } catch (err) {
+    $("precall-result").innerHTML = `<div class="meta-dim">Could not build the brief: ${escapeHtml(String(err))}</div>`;
+  }
+}
+function renderBrief(b) {
+  const who = [b.persona, b.account].filter(Boolean).join(" · ");
+  const lc = b.lastCall;
+  const mood = lc && lc.sentiment ? ({ positive: "🟢", neutral: "🟡", negative: "🔴" }[lc.sentiment] || "") : "";
+  const recap = lc
+    ? `<div class="pc-card"><h3>Last call recap</h3>
+        <div class="pc-recap-meta">${new Date(lc.startedAt).toLocaleDateString()} · <b>${lc.coveredPct}%</b> covered ${mood}</div>
+        ${lc.open.length ? `<div class="pc-line"><b>Left open:</b> ${lc.open.map(escapeHtml).join(", ")}</div>` : `<div class="pc-line">Full coverage last time.</div>`}
+        ${lc.objections.length ? `<div class="pc-line"><b>Objections:</b> ${lc.objections.map(escapeHtml).join(", ")}</div>` : ""}
+        ${lc.competitors.length ? `<div class="pc-line"><b>Competitors named:</b> ${lc.competitors.map(escapeHtml).join(", ")}</div>` : ""}
+        ${lc.notes ? `<div class="pc-line"><b>Notes:</b> ${escapeHtml(lc.notes)}</div>` : ""}</div>`
+    : `<div class="pc-card"><h3>Last call recap</h3><div class="meta-dim">No prior call on record for this contact — this will be a first meeting.</div></div>`;
+  $("precall-result").innerHTML =
+    `<div class="pc-head"><div>${who ? `<b>${escapeHtml(who)}</b> · ` : ""}${escapeHtml((b.framework || "meddpicc").toUpperCase())}</div>
+       <span class="pc-badge ${b.generatedBy}">${b.generatedBy === "llm" ? "✨ AI-sharpened" : "from your history"}</span></div>` +
+    `<div class="pc-card pc-opener"><h3>Opening line</h3><div class="pc-quote">${escapeHtml(b.openingLine)}</div></div>` +
+    recap +
+    `<div class="pc-card"><h3>Suggested agenda</h3><ol class="pc-agenda">${b.agenda.map((a) => `<li>${escapeHtml(a)}</li>`).join("")}</ol></div>` +
+    `<div class="pc-card"><h3>Likely objections</h3>${b.likelyObjections.map((o) => `<div class="pc-obj"><b>${escapeHtml(o.label)}</b><span>${escapeHtml(o.why)}</span></div>`).join("")}</div>`;
+}
 
 // ---------- Dashboard ----------
 async function loadDashboard() {
