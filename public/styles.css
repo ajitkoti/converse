@@ -363,6 +363,32 @@ input:focus, textarea:focus { outline: none; border-color: rgba(99,102,241,0.6);
 
 .coach-stats { font-size: 12px; color: var(--dim); font-variant-numeric: tabular-nums; }
 
+/* Help view */
+.help-card { border: 1px solid var(--stroke); border-radius: 14px; padding: 4px 18px; margin-bottom: 10px; background: var(--panel); }
+.help-card > summary { cursor: pointer; font-weight: 640; font-size: 15px; padding: 12px 0; list-style: none; }
+.help-card > summary::-webkit-details-marker { display: none; }
+.help-card > summary::before { content: "▸"; color: var(--dim); margin-right: 9px; display: inline-block; transition: transform 0.15s; }
+.help-card[open] > summary::before { transform: rotate(90deg); }
+.help-body { padding: 2px 0 16px; color: var(--muted); font-size: 14px; line-height: 1.6; }
+.help-body p { margin: 0 0 10px; }
+.help-body ul { margin: 0 0 10px; padding-left: 18px; }
+.help-body li { margin-bottom: 6px; }
+.help-body code { background: rgba(255,255,255,0.08); padding: 1px 5px; border-radius: 5px; font-size: 12.5px; }
+.help-body b { color: var(--text); }
+.chip-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin: 0 2px; }
+.chip-dot.grey { background: var(--grey); }
+.chip-dot.amber { background: var(--amber); }
+.chip-dot.green { background: var(--green); }
+
+/* In-call legend */
+.legend {
+  position: absolute; top: 66px; right: 18px; width: min(360px, 84vw); z-index: 6;
+  background: var(--panel-solid); border: 1px solid var(--stroke); border-radius: 14px;
+  padding: 14px 16px; box-shadow: var(--shadow); font-size: 12.5px; line-height: 1.6; color: var(--muted);
+  display: flex; flex-direction: column; gap: 8px;
+}
+.legend b { color: var(--text); }
+
 .danger-zone { margin-top: 30px; padding: 16px 18px; border: 1px solid rgba(255,80,80,0.22); border-radius: 14px; background: rgba(255,80,80,0.04); }
 .dz-head { font-size: 12px; text-transform: uppercase; letter-spacing: 0.12em; color: #ff9b9b; margin-bottom: 10px; }
 .btn.danger { background: rgba(255,80,80,0.12); color: #ff9b9b; border-color: rgba(255,80,80,0.32); }

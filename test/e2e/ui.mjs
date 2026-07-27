@@ -101,7 +101,12 @@ try {
   await page.fill("#history-search", "demo");
   check("history search filters", await page.locator("#history-list .rec-card").count() >= 1);
 
-  // 10. Theme toggle
+  // 10. Help view
+  await page.click('.nav-link[data-view="help"]');
+  await page.waitForSelector("#view-help:not(.hidden) .help-card");
+  check("help view has how-to sections", (await page.locator("#view-help .help-card").count()) >= 8);
+
+  // 11. Theme toggle
   await page.click("#theme-toggle");
   check("theme toggles to light", (await page.getAttribute("html", "data-theme")) === "light");
   await page.click("#theme-toggle");
