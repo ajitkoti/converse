@@ -76,6 +76,15 @@
           <input id="history-search" class="search" placeholder="Search…" />
         </div>
         <div id="history-list" class="cards"></div>
+        <div class="danger-zone">
+          <div class="dz-head">Data</div>
+          <div class="row-actions">
+            <button id="export-all" class="btn ghost">Export backup (.json)</button>
+            <button id="export-wipe" class="btn danger">Export &amp; wipe all</button>
+            <button id="wipe-all" class="btn danger">Delete all</button>
+          </div>
+          <div class="meta-dim">Wiping removes every saved call (transcript, summary, JSON) from this machine. It can't be undone.</div>
+        </div>
       </section>
 
       <!-- CONTEXT -->

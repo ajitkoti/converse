@@ -108,6 +108,17 @@ export async function startServer(opts: ServerOptions): Promise<RunningServer> {
         const { id } = await readJson<{ id: string }>(req);
         return json(200, { deleted: store.delete(String(id)) });
       }
+      if (req.method === "GET" && p === "/api/export-all") {
+        const body = JSON.stringify(store.allRecords(), null, 2);
+        res.writeHead(200, {
+          "Content-Type": "application/json",
+          "Content-Disposition": `attachment; filename="converse-backup.json"`,
+        });
+        return void res.end(body);
+      }
+      if (req.method === "POST" && p === "/api/purge") {
+        return json(200, { deleted: store.purgeAll() });
+      }
       if (req.method === "GET" && p === "/api/session") {
         const rec = store.read(url.searchParams.get("id") ?? "");
         return rec ? json(200, rec) : json(404, { error: "not found" });

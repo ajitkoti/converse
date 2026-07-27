@@ -82,6 +82,23 @@ export class SessionStore {
     return removed;
   }
 
+  /** All saved records (for a full backup export). */
+  allRecords(): SessionRecord[] {
+    return this.#readAll();
+  }
+
+  /** Delete every saved session's files. Returns how many sessions were removed. */
+  purgeAll(): number {
+    if (!fs.existsSync(this.#dir)) return 0;
+    const ids = fs
+      .readdirSync(this.#dir)
+      .filter((f) => f.endsWith(".json"))
+      .map((f) => f.slice(0, -".json".length));
+    let n = 0;
+    for (const id of ids) if (this.delete(id)) n++;
+    return n;
+  }
+
   #readAll(): SessionRecord[] {
     const files = fs.existsSync(this.#dir)
       ? fs.readdirSync(this.#dir).filter((f) => f.endsWith(".json"))

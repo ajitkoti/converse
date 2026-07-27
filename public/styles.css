@@ -363,6 +363,11 @@ input:focus, textarea:focus { outline: none; border-color: rgba(99,102,241,0.6);
 
 .coach-stats { font-size: 12px; color: var(--dim); font-variant-numeric: tabular-nums; }
 
+.danger-zone { margin-top: 30px; padding: 16px 18px; border: 1px solid rgba(255,80,80,0.22); border-radius: 14px; background: rgba(255,80,80,0.04); }
+.dz-head { font-size: 12px; text-transform: uppercase; letter-spacing: 0.12em; color: #ff9b9b; margin-bottom: 10px; }
+.btn.danger { background: rgba(255,80,80,0.12); color: #ff9b9b; border-color: rgba(255,80,80,0.32); }
+.btn.danger:hover { background: rgba(255,80,80,0.22); }
+
 /* Objection card (distinct from suggestion) */
 .obj-card {
   position: absolute; bottom: 84px; right: 26px; width: min(380px, 84vw);

@@ -428,6 +428,30 @@ function bindRows(container) {
     });
   }
 }
+async function downloadBackup() {
+  const res = await fetch("/api/export-all");
+  const blob = await res.blob();
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "converse-backup.json";
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+async function purgeAll() {
+  const { deleted } = await api.post("/api/purge", {});
+  await loadHistory();
+  toast(`Deleted ${deleted} call${deleted === 1 ? "" : "s"}.`, "info");
+}
+$("export-all").addEventListener("click", downloadBackup);
+$("wipe-all").addEventListener("click", async () => {
+  if (!confirm("Delete ALL saved calls from this machine? This cannot be undone.")) return;
+  await purgeAll();
+});
+$("export-wipe").addEventListener("click", async () => {
+  await downloadBackup();
+  if (!confirm("Backup downloaded. Now delete all local call data? This cannot be undone.")) return;
+  await purgeAll();
+});
 $("history-search").addEventListener("input", (e) => {
   const q = e.target.value.toLowerCase();
   renderHistoryList(historyCache.filter((s) => (new Date(s.startedAt).toLocaleString() + " " + s.mode).toLowerCase().includes(q)));

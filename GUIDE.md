@@ -274,6 +274,16 @@ Windows `%APPDATA%\Converse`.
 Keys are stored in plain text in the settings file (fine for a personal local
 tool). Delete the file to remove them.
 
+**Deleting / exporting your call data.** In the **History** tab:
+
+- **Delete one** — the ✕ on any row.
+- **Export backup (.json)** — download every saved call as one JSON file.
+- **Export & wipe all** — download the backup, then delete all local call data.
+- **Delete all** — wipe every saved call immediately (no backup).
+
+Wiping removes the transcripts, summaries, and JSON from `data/sessions/` and
+can't be undone, so keep a backup if you might want the calls later.
+
 ---
 
 ## 11. Troubleshooting
