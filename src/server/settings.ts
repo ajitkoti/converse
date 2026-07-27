@@ -25,6 +25,9 @@ export interface UserSettings {
   driveFolderId?: string;
   /** auto-save every finished session locally (default true) */
   autoSave?: boolean;
+  /** API keys entered in-app (used in packaged builds so no file editing is needed) */
+  deepgramApiKey?: string;
+  anthropicApiKey?: string;
 }
 
 export class Settings {

@@ -244,6 +244,7 @@ input:focus, textarea:focus { outline: none; border-color: rgba(99,102,241,0.6);
 .prompt-box textarea { margin-top: 10px; font-family: ui-monospace, monospace; font-size: 12.5px; line-height: 1.5; }
 .btn.small { padding: 5px 10px; font-size: 12px; margin-top: 8px; }
 .saved-note { color: #a7f3d0; font-size: 13px; }
+.key-set { color: #a7f3d0; font-style: normal; font-size: 12px; }
 
 /* Summary */
 .summary-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }

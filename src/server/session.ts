@@ -24,8 +24,15 @@ import { makeSessionId } from "./store.js";
 import type { DriveExporter } from "./gdrive.js";
 import { buildSummaryMarkdown, buildTranscriptMarkdown } from "./summary.js";
 import type { SessionRecord, SlotDefWire, SuggestionRecord, TranscriptLine } from "./types.js";
-import goodCall from "../fixtures/good-call.json" with { type: "json" };
-import badCall from "../fixtures/bad-call.json" with { type: "json" };
+import * as fs from "node:fs";
+import * as path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const fixturesDir = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "fixtures");
+const readFixture = (name: string): unknown =>
+  JSON.parse(fs.readFileSync(path.join(fixturesDir, name), "utf8"));
+const goodCall = readFixture("good-call.json");
+const badCall = readFixture("bad-call.json");
 
 export type { SlotDefWire } from "./types.js";
 

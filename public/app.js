@@ -303,6 +303,10 @@ function fillSettings() {
   $("set-drive-folder").value = s.driveFolderId || "";
   $("set-autosave").checked = s.autoSave !== false;
   $("set-usecontext").checked = s.useContext !== false;
+  $("set-deepgram-key").value = "";
+  $("set-anthropic-key").value = "";
+  $("dg-set").textContent = s.hasDeepgramKey ? "· saved ✓" : "";
+  $("an-set").textContent = s.hasAnthropicKey ? "· saved ✓" : "";
   $("set-classifier-prompt").value = s.classifierPrompt || "";
   $("set-question-prompt").value = s.questionPrompt || "";
   $("set-classifier-prompt").placeholder = state.defaults.classifierPrompt || "";
@@ -322,6 +326,11 @@ async function saveSettings() {
       suggestion: $("set-cooldown").value ? { cooldownSeconds: Number($("set-cooldown").value) } : undefined,
     },
   };
+  // only send keys when the user typed something (blank = keep existing)
+  const dg = $("set-deepgram-key").value.trim();
+  const an = $("set-anthropic-key").value.trim();
+  if (dg) patch.deepgramApiKey = dg;
+  if (an) patch.anthropicApiKey = an;
   // prune empty config
   if (!patch.config.models.classifier && !patch.config.models.questionGen) delete patch.config.models;
   if (!patch.config.suggestion) delete patch.config.suggestion;

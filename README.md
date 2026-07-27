@@ -14,6 +14,14 @@ with zero Electron/UI knowledge, so it also runs server-side or in tests.
 See **[ARCHITECTURE.md](./ARCHITECTURE.md)** for the design, the raven
 integration points, and the overlay contract.
 
+## Install
+
+- **Easiest — download the desktop app** (macOS `.dmg` / Windows `.exe`, no Node,
+  no terminal): see **[INSTALL.md](./INSTALL.md)**. Installers are built
+  automatically in CI for both platforms.
+- **Run from source** — double-click `start-mac.command` / `start-windows.bat`, or
+  `npm install && npm start` (below).
+
 ## Run it (30 seconds, no keys)
 
 ```bash

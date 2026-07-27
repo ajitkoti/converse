@@ -3,18 +3,68 @@
   "version": "0.1.0",
   "description": "Live Sales Qualification Copilot — a portable, real-time MEDDPICC coverage engine that consumes a transcript event stream and emits guidance events. Designed to plug into project-raven's audio + Deepgram pipeline, but with zero Electron/UI knowledge.",
   "type": "module",
+  "main": "electron/main.cjs",
+  "author": "Converse",
+  "repository": { "type": "git", "url": "https://github.com/ajitkoti/converse.git" },
   "engines": {
     "node": ">=20"
   },
   "scripts": {
     "start": "node --import tsx src/server/index.ts",
     "dev": "node --import tsx --watch src/server/index.ts",
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.build.json && node scripts/copy-assets.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "replay": "node --import tsx scripts/replay.ts",
-    "connect-drive": "node --import tsx scripts/connect-drive.ts"
+    "connect-drive": "node --import tsx scripts/connect-drive.ts",
+    "app": "npm run build && electron .",
+    "dist:mac": "npm run build && electron-builder --mac",
+    "dist:win": "npm run build && electron-builder --win",
+    "dist:linux": "npm run build && electron-builder --linux",
+    "dist": "npm run build && electron-builder -mwl"
+  },
+  "build": {
+    "appId": "com.converse.copilot",
+    "productName": "Converse",
+    "asar": false,
+    "files": [
+      "dist/**/*",
+      "public/**/*",
+      "context/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "extraMetadata": {
+      "main": "electron/main.cjs"
+    },
+    "directories": {
+      "output": "release",
+      "buildResources": "build-assets"
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "category": "public.app-category.business",
+      "identity": null
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "category": "Office"
+    }
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.65.0",
@@ -24,6 +74,8 @@
   "devDependencies": {
     "@types/node": "^22.10.0",
     "@types/ws": "^8.18.1",
+    "electron": "^33.4.11",
+    "electron-builder": "^25.1.8",
     "tsx": "^4.19.0",
     "typescript": "^5.7.0",
     "vitest": "^2.1.0"

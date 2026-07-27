@@ -5,8 +5,16 @@
  * cooldowns so replays exercise timing logic quickly).
  */
 
-import rawConfig from "./config.json" with { type: "json" };
+import * as fs from "node:fs";
+import * as path from "node:path";
+import { fileURLToPath } from "node:url";
 import type { SlotId } from "./types.js";
+
+// Loaded via fs (not an import attribute) so the compiled dist runs on any
+// Electron/Node version. config.json is copied next to this module at build time.
+const rawConfig = JSON.parse(
+  fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), "config.json"), "utf8"),
+) as unknown;
 
 export interface SlotDef {
   id: SlotId;
