@@ -331,6 +331,14 @@ the engine, none of them imported by it:
   for the summary.
 - **Drive export** (`gdrive.ts`): optional OAuth/service-account upload of the
   same artifacts; gracefully disabled when unconfigured (local save always works).
+- **Drive as a call database** (`drive-db.ts`): treats Drive as the system of
+  record, filing each call BY TYPE — `Recordings/ Transcripts/ Summaries/
+  Analyses/ Sessions/`, one file per call keyed by id, writes overwrite in place.
+  It depends only on a small `DriveClient` interface (implemented by
+  `DriveExporter`, faked in tests), so the DB logic is verified without Google
+  credentials and carries no LLM dependency — the analyze step for refresh is
+  injected. Finished calls auto-sync on end; `/api/drive/{calls,analysis,refresh}`
+  browse, fetch, and re-run analyses back into Drive.
 
 The engine stays pure: it never learns about files, Drive, HTTP, or settings —
 those are host concerns wired in through its small, optional dependency hooks.

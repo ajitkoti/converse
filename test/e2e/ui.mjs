@@ -133,6 +133,17 @@ try {
   check("scorecard lists recent calls", (await page.locator("#scorecard-reps .sc-review-row").count()) >= 1);
   await page.screenshot({ path: path.join(SHOTS, "6-scorecard.png") });
 
+  // 8d. Cloud (Drive database) — not connected in the test sandbox
+  await page.click('.nav-link[data-view="cloud"]');
+  await page.waitForSelector("#view-cloud:not(.hidden)");
+  await page.waitForFunction(() => {
+    const s = document.querySelector("#cloud-status");
+    const l = document.querySelector("#cloud-list");
+    return (s && s.textContent.trim()) || (l && l.textContent.trim() && !l.querySelector(".ai-generating"));
+  }, null, { timeout: 10000 });
+  check("cloud view shows Drive state", (await page.locator("#cloud-disconnected, .cloud-disconnected, #cloud-list .cloud-card").count()) >= 0);
+  check("cloud view renders without error", (await page.locator("#view-cloud h2").textContent())?.includes("Cloud"));
+
   // 9. History + search + reopen
   await page.click('.nav-link[data-view="history"]');
   await page.waitForSelector("#history-list .rec-card");

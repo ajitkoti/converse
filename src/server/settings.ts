@@ -39,6 +39,8 @@ export interface UserSettings {
   competitors?: string[];
   /** rep name stamped on saved calls, for the team scorecard roll-up */
   repName?: string;
+  /** mirror finished calls into Google Drive (the call database); default true when connected */
+  driveSync?: boolean;
 }
 
 export class Settings {

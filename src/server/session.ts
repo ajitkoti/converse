@@ -30,6 +30,7 @@ import type { ContextLibrary } from "./context.js";
 import type { SessionStore } from "./store.js";
 import { makeSessionId } from "./store.js";
 import type { DriveExporter } from "./gdrive.js";
+import type { DriveDb } from "./drive-db.js";
 import { buildSummaryMarkdown, buildTranscriptMarkdown } from "./summary.js";
 import type { SessionRecord, SlotDefWire, SuggestionRecord, TranscriptLine } from "./types.js";
 import * as fs from "node:fs";
@@ -77,6 +78,7 @@ export interface SessionEnv {
   context: ContextLibrary;
   store: SessionStore;
   drive: DriveExporter;
+  driveDb?: DriveDb;
   driveRootFolderId?: string;
 }
 
@@ -417,6 +419,13 @@ export class Session {
       }
     }
     this.#send({ type: "analysis", id: record.id, analysis });
+    // Mirror the finished call (with analysis) into Drive when it's the DB.
+    if (this.#env.settings.get().driveSync !== false && this.#env.driveDb?.connected()) {
+      this.#env.driveDb
+        .storeCall(record)
+        .then((res) => this.#send({ type: "drive", ok: true, files: Object.entries(res.links).map(([name, link]) => ({ name, link })) }))
+        .catch((err) => this.#send({ type: "drive", ok: false, error: `Drive sync: ${String(err)}` }));
+    }
   }
 
   #end(): void {

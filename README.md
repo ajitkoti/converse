@@ -55,6 +55,11 @@ shows up under **History**.
   bridging-question card at natural pauses, elapsed timer, live caption.
 - **Post-call summary + history** — coverage with evidence quotes and the nudges
   given; browse and reopen past calls.
+- **Google Drive as a call database** — with Drive connected + sync on, every
+  finished call is filed by type (`Recordings/`, `Transcripts/`, `Summaries/`,
+  `Analyses/`, `Sessions/`), one file per call. The **Cloud** view browses it,
+  fetches a call's stored analysis, and re-runs (refreshes) the analysis back
+  into Drive — Drive is the source of truth.
 - **Scorecard & skill index** — rolls up every saved call into a skill profile
   (discovery/coverage, listening, questioning, objection handling) with an overall
   grade, a trend, and a per-call review. Tag calls with a rep name (Settings) to

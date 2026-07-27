@@ -15,6 +15,7 @@
         <button class="nav-link" data-view="precall">Pre-call</button>
         <button class="nav-link" data-view="dashboard">Dashboard</button>
         <button class="nav-link" data-view="scorecard">Scorecard</button>
+        <button class="nav-link" data-view="cloud">Cloud</button>
         <button class="nav-link" data-view="history">History</button>
         <button class="nav-link" data-view="context">Context</button>
         <button class="nav-link" data-view="settings">Settings</button>
@@ -86,6 +87,17 @@
         </div>
       </section>
 
+      <!-- CLOUD (Drive as database) -->
+      <section id="view-cloud" class="view hidden">
+        <div class="summary-head">
+          <h2>Cloud calls</h2>
+          <button id="cloud-refresh-list" class="btn ghost">Reload</button>
+        </div>
+        <p class="sub">Google Drive is your call database — every finished call is filed by type (Recordings, Transcripts, Summaries, Analyses, Sessions). Fetch a call's stored analysis, or re-run it and save the fresh result back to Drive.</p>
+        <div id="cloud-status" class="cloud-status"></div>
+        <div id="cloud-list" class="cloud-list"></div>
+      </section>
+
       <!-- SCORECARD -->
       <section id="view-scorecard" class="view hidden">
         <h2>Scorecard &amp; skill index</h2>
@@ -147,6 +159,7 @@
           <label class="field"><span>Rep name <b class="qm" data-help="Stamped on each saved call for the Scorecard. Set different names on different machines to build a team view.">?</b></span><input id="set-repname" placeholder="e.g. You, or a rep's name" autocomplete="off" /></label>
           <label class="check"><input id="set-autosave" type="checkbox" /> <span>Auto-save every session locally <b class="qm" data-help="Keep a copy of every finished call in data/sessions/ (JSON + summary + transcript). Turn off to keep nothing on disk.">?</b></span></label>
           <label class="check"><input id="set-usecontext" type="checkbox" /> <span>Inject context docs into suggestions <b class="qm" data-help="Feed your Context docs (battlecards, product) into the question generator so nudges are specific to your product.">?</b></span></label>
+          <label class="check"><input id="set-drivesync" type="checkbox" /> <span>Sync finished calls to Google Drive <b class="qm" data-help="When Drive is connected, file every finished call (transcript, summary, analysis, recording, JSON) into your Drive call database by type. Browse it under Cloud.">?</b></span></label>
         </div>
 
         <details class="prompt-box">
@@ -242,6 +255,14 @@
               <li><b>Too few questions</b> — get them talking with an open question.</li>
             </ul>
             <p>The summary shows your talk ratio, questions asked, pace, and longest monologue (amber = worth improving).</p>
+          </div>
+        </details>
+
+        <details class="help-card">
+          <summary>☁️ Cloud — Google Drive as your call database</summary>
+          <div class="help-body">
+            <p>Connect Google Drive (<b>Settings → Google Drive</b>) and turn on <b>Sync finished calls to Google Drive</b>. Every finished call is then filed in Drive <b>by type</b>: <code>Recordings/</code>, <code>Transcripts/</code>, <code>Summaries/</code>, <code>Analyses/</code>, and <code>Sessions/</code> (the raw record), one file per call keyed by call id.</p>
+            <p>Open <b>Cloud</b> to browse everything stored in Drive. For each call you can <b>View analysis</b> (fetch the analysis previously saved to Drive) or <b>Refresh analysis</b> (re-run the AI debrief and overwrite it in Drive). Drive is the source of truth, so your analyses live with your data — portable and re-runnable anytime.</p>
           </div>
         </details>
 

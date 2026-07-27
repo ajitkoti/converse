@@ -49,6 +49,7 @@ function showView(name) {
   if (name === "dashboard") loadDashboard();
   if (name === "precall") initPrecall();
   if (name === "scorecard") loadScorecard();
+  if (name === "cloud") loadCloud();
 }
 function showApp() { nav.classList.remove("hidden"); mainEl.classList.remove("hidden"); overlay.classList.add("hidden"); }
 function showOverlayScreen() { nav.classList.add("hidden"); mainEl.classList.add("hidden"); overlay.classList.remove("hidden"); }
@@ -424,15 +425,13 @@ function renderSummary(rec, opts = {}) {
   if (!opts.saved && opts.live) toast("Auto-save is off — downloads use the saved record.", "warn");
 }
 function coachTile(n, l, warn) { return `<div class="coach-tile ${warn ? "warn" : ""}"><div class="n">${n}</div><div class="l">${l}</div></div>`; }
-function renderAnalysis(a) {
-  if (!a) { $("summary-analysis").innerHTML = ""; return; }
+function analysisHtml(a) {
   const mood = { positive: ["🟢", "positive"], neutral: ["🟡", "neutral"], negative: ["🔴", "negative"] }[a.sentiment.overall] || ["🟡", "neutral"];
   const list = (title, cls, xs) => (xs && xs.length)
     ? `<div class="ai-col ${cls}"><h4>${title}</h4><ul>${xs.map((x) => `<li>${escapeHtml(x)}</li>`).join("")}</ul></div>` : "";
   const email = a.followUpEmail && a.followUpEmail.trim()
-    ? `<div class="ai-email"><div class="ai-email-head"><h4>✉️ Suggested follow-up email</h4><button id="ai-copy-email" class="btn small ghost">Copy</button></div><pre>${escapeHtml(a.followUpEmail.trim())}</pre></div>` : "";
-  $("summary-analysis").innerHTML =
-    `<div class="ai-debrief"><div class="ai-head"><h3>🧠 AI deal debrief</h3>` +
+    ? `<div class="ai-email"><div class="ai-email-head"><h4>✉️ Suggested follow-up email</h4><button class="btn small ghost ai-copy-email">Copy</button></div><pre>${escapeHtml(a.followUpEmail.trim())}</pre></div>` : "";
+  return `<div class="ai-debrief"><div class="ai-head"><h3>🧠 AI deal debrief</h3>` +
     `<span class="ai-sentiment ${a.sentiment.overall}">${mood[0]} ${mood[1]}</span></div>` +
     (a.sentiment.rationale ? `<div class="ai-rationale">${escapeHtml(a.sentiment.rationale)}</div>` : "") +
     `<div class="ai-budget"><b>Budget / economics:</b> ${escapeHtml(a.budget || "Not established.")}</div>` +
@@ -444,12 +443,20 @@ function renderAnalysis(a) {
       list("🚩 Red flags", "flags", a.redFlags) +
       list("🎯 Key decision points", "decisions", a.keyDecisions) +
     `</div>` + email + `</div>`;
-  const copyBtn = $("ai-copy-email");
-  if (copyBtn) copyBtn.onclick = async () => {
+}
+function wireCopyEmail(container, a) {
+  const btn = container.querySelector(".ai-copy-email");
+  if (btn) btn.onclick = async () => {
     try { await navigator.clipboard.writeText(a.followUpEmail.trim()); toast("Follow-up email copied", "info"); }
     catch { toast("Copy failed", "warn"); }
   };
 }
+function renderAnalysisInto(el, a) {
+  if (!a) { el.innerHTML = ""; return; }
+  el.innerHTML = analysisHtml(a);
+  wireCopyEmail(el, a);
+}
+function renderAnalysis(a) { renderAnalysisInto($("summary-analysis"), a); }
 function renderExportResult(msg) {
   $("export-result").innerHTML = msg.ok
     ? `✅ Sent to ${msg.target}.`
@@ -557,6 +564,70 @@ $("history-search").addEventListener("input", (e) => {
   const q = e.target.value.toLowerCase();
   renderHistoryList(historyCache.filter((s) => (new Date(s.startedAt).toLocaleString() + " " + s.mode).toLowerCase().includes(q)));
 });
+
+// ---------- Cloud (Drive database) ----------
+let cloudInit = false;
+function initCloudOnce() {
+  if (cloudInit) return;
+  cloudInit = true;
+  $("cloud-refresh-list").addEventListener("click", loadCloud);
+}
+async function loadCloud() {
+  initCloudOnce();
+  $("cloud-list").innerHTML = `<div class="ai-generating"><span class="spin"></span> Loading calls from Drive…</div>`;
+  let data;
+  try { data = await api.get("/api/drive/calls"); }
+  catch (err) { $("cloud-status").innerHTML = `<div class="meta-dim">Could not reach Drive: ${escapeHtml(String(err))}</div>`; $("cloud-list").innerHTML = ""; return; }
+  if (!data.connected) {
+    $("cloud-status").innerHTML = `<div class="cloud-disconnected">Google Drive isn't connected. Open <b>Settings → Google Drive</b> to connect it, then finished calls are filed here automatically.</div>`;
+    $("cloud-list").innerHTML = "";
+    return;
+  }
+  $("cloud-status").innerHTML = data.error ? `<div class="meta-dim">Drive error: ${escapeHtml(data.error)}</div>` : "";
+  const calls = data.calls || [];
+  $("cloud-list").innerHTML = calls.length
+    ? calls.map(cloudRowHtml).join("")
+    : `<div class="meta-dim">No calls in Drive yet. Finish a live call with Drive sync on and it'll appear here.</div>`;
+  for (const row of $("cloud-list").querySelectorAll(".cloud-card")) bindCloudRow(row);
+}
+function cloudRowHtml(c) {
+  const badge = (on, label) => `<span class="cloud-badge ${on ? "on" : "off"}">${on ? "✓" : "—"} ${label}</span>`;
+  const when = c.modifiedTime ? new Date(c.modifiedTime).toLocaleString() : c.id;
+  return `<div class="cloud-card" data-id="${escapeHtml(c.id)}">
+    <div class="cloud-main"><div class="cloud-id">${escapeHtml(c.id)}</div><div class="meta-dim">${escapeHtml(when)}</div>
+      <div class="cloud-badges">${badge(c.hasRecording, "recording")}${badge(c.hasTranscript, "transcript")}${badge(c.hasAnalysis, "analysis")}</div></div>
+    <div class="cloud-actions">
+      <button class="btn ghost small" data-act="view">View analysis</button>
+      <button class="btn small" data-act="refresh">Refresh analysis</button>
+    </div>
+    <div class="cloud-analysis hidden"></div></div>`;
+}
+function bindCloudRow(row) {
+  const id = row.dataset.id;
+  const panel = row.querySelector(".cloud-analysis");
+  row.querySelector('[data-act="view"]').addEventListener("click", async () => {
+    panel.classList.remove("hidden");
+    panel.innerHTML = `<div class="ai-generating"><span class="spin"></span> Fetching…</div>`;
+    try {
+      const r = await api.get(`/api/drive/analysis?id=${encodeURIComponent(id)}`);
+      panel.innerHTML = r.analysis ? "" : `<div class="meta-dim">No analysis stored yet — hit “Refresh analysis”.</div>`;
+      if (r.analysis) renderAnalysisInto(panel, r.analysis);
+    } catch (err) { panel.innerHTML = `<div class="meta-dim">${escapeHtml(String(err))}</div>`; }
+  });
+  row.querySelector('[data-act="refresh"]').addEventListener("click", async (e) => {
+    const btn = e.currentTarget; btn.disabled = true; btn.textContent = "Refreshing…";
+    try {
+      const r = await api.post("/api/drive/refresh", { id });
+      panel.classList.remove("hidden");
+      panel.innerHTML = "";
+      if (r.analysis) { renderAnalysisInto(panel, r.analysis); toast("Analysis refreshed and saved to Drive", "info"); }
+      else toast(r.error || "Refresh failed", "warn");
+      const badges = row.querySelector(".cloud-badges");
+      if (badges && !badges.textContent.includes("✓ analysis")) loadCloud();
+    } catch (err) { toast(String(err), "warn"); }
+    finally { btn.disabled = false; btn.textContent = "Refresh analysis"; }
+  });
+}
 
 // ---------- Scorecard ----------
 async function loadScorecard() {
@@ -695,6 +766,7 @@ function fillSettings() {
   $("set-drive-folder").value = s.driveFolderId || "";
   $("set-autosave").checked = s.autoSave !== false;
   $("set-usecontext").checked = s.useContext !== false;
+  $("set-drivesync").checked = s.driveSync !== false;
   $("set-deepgram-key").value = ""; $("set-anthropic-key").value = ""; $("set-openai-key").value = "";
   $("dg-set").textContent = s.hasDeepgramKey ? "· saved ✓" : "";
   $("an-set").textContent = s.hasAnthropicKey ? "· saved ✓" : "";
@@ -720,6 +792,7 @@ async function saveSettings() {
     driveFolderId: $("set-drive-folder").value.trim() || undefined,
     autoSave: $("set-autosave").checked,
     useContext: $("set-usecontext").checked,
+    driveSync: $("set-drivesync").checked,
     classifierPrompt: $("set-classifier-prompt").value.trim(),
     questionPrompt: $("set-question-prompt").value.trim(),
     framework: $("set-framework").value,
