@@ -20,6 +20,7 @@ import { DriveExporter, buildOAuthClient, oauthClientConfigured, DRIVE_SCOPES, T
 import { frameworkList } from "./frameworks.js";
 import { buildSummaryMarkdown, buildTranscriptMarkdown } from "./summary.js";
 import { buildPreCallBrief, enhancePreCallBriefLLM } from "./precall.js";
+import { buildScorecard } from "./scorecard.js";
 import { chooseLlm } from "./llm-factory.js";
 import { OfflineLlmClient } from "./offline-llm.js";
 import { loadConfig } from "../engine/config.js";
@@ -165,6 +166,7 @@ export async function startServer(opts: ServerOptions): Promise<RunningServer> {
       }
       if (req.method === "GET" && p === "/api/history") return json(200, { sessions: store.list() });
       if (req.method === "GET" && p === "/api/analytics") return json(200, store.analytics());
+      if (req.method === "GET" && p === "/api/scorecard") return json(200, buildScorecard(store));
       if (req.method === "POST" && p === "/api/session/delete") {
         const { id } = await readJson<{ id: string }>(req);
         return json(200, { deleted: store.delete(String(id)) });
