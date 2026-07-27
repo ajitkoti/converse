@@ -10,6 +10,7 @@
 import * as fs from "node:fs";
 import * as http from "node:http";
 import { buildOAuthClient, DRIVE_SCOPES, TOKEN_PATH } from "../src/server/gdrive.js";
+import { CALENDAR_SCOPES } from "../src/server/gcal.js";
 
 const clientPath = process.env.GOOGLE_OAUTH_CLIENT;
 if (!clientPath || !fs.existsSync(clientPath)) {
@@ -19,7 +20,7 @@ if (!clientPath || !fs.existsSync(clientPath)) {
 
 const PORT = 5273;
 const oauth = buildOAuthClient(clientPath);
-const url = oauth.generateAuthUrl({ access_type: "offline", scope: DRIVE_SCOPES, prompt: "consent" });
+const url = oauth.generateAuthUrl({ access_type: "offline", scope: [...DRIVE_SCOPES, ...CALENDAR_SCOPES], prompt: "consent" });
 
 const server = http.createServer(async (req, res) => {
   const code = new URL(req.url ?? "", `http://localhost:${PORT}`).searchParams.get("code");

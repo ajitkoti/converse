@@ -11,12 +11,19 @@
  * DriveDb round-trip against real Drive, and deletes the folder afterwards.
  */
 
+import * as fs from "node:fs";
 import { describe, it, expect, afterAll } from "vitest";
-import { DriveExporter } from "../../src/server/gdrive.js";
+import { DriveExporter, TOKEN_PATH } from "../../src/server/gdrive.js";
 import { DriveDb } from "../../src/server/drive-db.js";
 import type { SessionRecord, CallAnalysis } from "../../src/server/types.js";
 
-const ENABLED = Boolean(process.env.GOOGLE_APPLICATION_CREDENTIALS && process.env.GDRIVE_TEST_FOLDER);
+// Enabled when a target folder is set AND we have creds by either path:
+//   - a service account (GOOGLE_APPLICATION_CREDENTIALS) — needs a Shared Drive folder, or
+//   - your own OAuth token (GOOGLE_OAUTH_CLIENT + a saved .gdrive-token.json) —
+//     works against a personal My Drive folder since the token carries your storage.
+const HAS_SERVICE_ACCOUNT = Boolean(process.env.GOOGLE_APPLICATION_CREDENTIALS);
+const HAS_OAUTH = Boolean(process.env.GOOGLE_OAUTH_CLIENT) && fs.existsSync(TOKEN_PATH);
+const ENABLED = Boolean(process.env.GDRIVE_TEST_FOLDER) && (HAS_SERVICE_ACCOUNT || HAS_OAUTH);
 const PARENT = process.env.GDRIVE_TEST_FOLDER ?? "";
 const ROOT_NAME = "Converse IT (safe to delete)";
 
