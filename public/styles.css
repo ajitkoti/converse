@@ -363,6 +363,40 @@ input:focus, textarea:focus { outline: none; border-color: rgba(99,102,241,0.6);
 
 .coach-stats { font-size: 12px; color: var(--dim); font-variant-numeric: tabular-nums; }
 
+/* Per-field "?" help popovers */
+.qm {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 15px; height: 15px; border-radius: 50%; border: 1px solid var(--stroke);
+  color: var(--dim); font-size: 10px; font-weight: 700; cursor: help; position: relative; vertical-align: middle;
+}
+.qm:hover { color: var(--text); border-color: var(--accent); }
+.qm:hover::after {
+  content: attr(data-help);
+  position: absolute; bottom: 150%; left: 0; transform: translateX(-10%);
+  width: 230px; background: var(--panel-solid); border: 1px solid var(--stroke);
+  border-radius: 9px; padding: 9px 11px; font-size: 12px; font-weight: 400;
+  color: var(--muted); line-height: 1.45; box-shadow: var(--shadow);
+  white-space: normal; text-align: left; z-index: 30; letter-spacing: 0;
+}
+
+/* Guided tour */
+.tour { position: fixed; inset: 0; z-index: 100; }
+.tour-ring {
+  position: absolute; border-radius: 12px; transition: all 0.28s ease;
+  box-shadow: 0 0 0 9999px rgba(6, 8, 12, 0.72); pointer-events: none;
+  border: 2px solid var(--accent-2);
+}
+.tour-pop {
+  position: absolute; width: min(320px, 86vw);
+  background: var(--panel-solid); border: 1px solid var(--stroke); border-radius: 14px;
+  padding: 16px 18px; box-shadow: var(--shadow); transition: all 0.28s ease;
+}
+.tp-step { font-size: 11px; color: var(--accent-2); text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 6px; }
+.tp-title { font-size: 16px; font-weight: 640; margin-bottom: 6px; }
+.tp-text { font-size: 13.5px; color: var(--muted); line-height: 1.5; margin-bottom: 14px; }
+.tp-actions { display: flex; align-items: center; gap: 8px; }
+.tp-actions .grow { flex: 1; }
+
 /* Help view */
 .help-card { border: 1px solid var(--stroke); border-radius: 14px; padding: 4px 18px; margin-bottom: 10px; background: var(--panel); }
 .help-card > summary { cursor: pointer; font-weight: 640; font-size: 15px; padding: 12px 0; list-style: none; }

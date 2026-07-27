@@ -61,6 +61,8 @@ async function init() {
     toast("✅ Google Drive connected.", "info");
     history.replaceState({}, "", location.pathname);
     showView("settings");
+  } else if (!localStorage.getItem("converse-tour-done")) {
+    setTimeout(startTour, 400); // first-run walkthrough
   }
 }
 function renderDriveConnect() {
@@ -584,6 +586,54 @@ function labelOf(id) { const d = slotDefs.find((s) => s.id === id); return d ? d
 function fmt(ms) { const s = Math.floor(ms / 1000); return `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`; }
 function escapeHtml(s) { return String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
 
+// ---------- Guided tour ----------
+const TOUR = [
+  { sel: null, title: "Welcome to Converse", text: "Your live sales-call copilot — it tracks qualification coverage and whispers the next question. Here's the 20-second tour." },
+  { sel: ".choices", title: "Try a demo", text: "No setup needed. Watch a scripted call fill the qualification areas, and see the copilot nudge you at the right moment." },
+  { sel: ".choice.live", title: "Go live", text: "On a real call your mic is you and a shared meeting tab is the prospect. Add a Deepgram key in Settings first." },
+  { sel: '.nav-link[data-view="dashboard"]', title: "Dashboard", text: "Coverage trends, most-missed areas, and talk ratios across all your calls." },
+  { sel: '.nav-link[data-view="history"]', title: "History", text: "Reopen past calls, export a full backup, or wipe your data." },
+  { sel: '.nav-link[data-view="context"]', title: "Context", text: "Drop in battlecards and product docs so the copilot's questions are about YOUR product." },
+  { sel: '.nav-link[data-view="settings"]', title: "Settings", text: "Keys, provider (Claude or GPT), framework, and prompts. Hover any “?” for a quick explainer." },
+  { sel: '.nav-link[data-view="help"]', title: "Help anytime", text: "Full how-to for every feature lives here. That's it — go run a demo!" },
+];
+let tourStep = 0;
+function startTour() {
+  tourStep = 0;
+  showApp(); showView("home");
+  $("tour").classList.remove("hidden");
+  renderTourStep();
+}
+function endTour() {
+  $("tour").classList.add("hidden");
+  localStorage.setItem("converse-tour-done", "1");
+}
+function renderTourStep() {
+  const step = TOUR[tourStep];
+  $("tp-step").textContent = `Step ${tourStep + 1} of ${TOUR.length}`;
+  $("tp-title").textContent = step.title;
+  $("tp-text").textContent = step.text;
+  $("tp-back").style.visibility = tourStep === 0 ? "hidden" : "visible";
+  $("tp-next").textContent = tourStep === TOUR.length - 1 ? "Done" : "Next";
+  const ring = $("tour-ring"), pop = $("tour-pop");
+  const el = step.sel ? document.querySelector(step.sel) : null;
+  if (el) {
+    const r = el.getBoundingClientRect();
+    ring.style.display = "block";
+    ring.style.left = r.left - 6 + "px"; ring.style.top = r.top - 6 + "px";
+    ring.style.width = r.width + 12 + "px"; ring.style.height = r.height + 12 + "px";
+    const popW = Math.min(320, window.innerWidth * 0.86);
+    let left = Math.max(12, Math.min(r.left, window.innerWidth - popW - 12));
+    let top = r.bottom + 14;
+    if (top + 180 > window.innerHeight) top = Math.max(12, r.top - 190);
+    pop.style.left = left + "px"; pop.style.top = top + "px";
+    pop.style.transform = "none";
+  } else {
+    ring.style.display = "none";
+    pop.style.left = "50%"; pop.style.top = "42%"; pop.style.transform = "translate(-50%,-50%)";
+  }
+}
+
 // ---------- Wire up ----------
 for (const b of document.querySelectorAll(".nav-link")) b.addEventListener("click", () => showView(b.dataset.view));
 for (const btn of document.querySelectorAll(".choice")) btn.addEventListener("click", () => begin(btn.dataset.mode, btn.dataset.fixture));
@@ -610,6 +660,10 @@ $("obj-dismiss").addEventListener("click", () => $("obj-card").classList.add("hi
 $("export-drive").addEventListener("click", () => { send({ type: "export-drive" }); toast("Uploading to Google Drive…", "info"); });
 $("settings-save").addEventListener("click", saveSettings);
 $("drive-connect").addEventListener("click", connectDrive);
+$("tp-skip").addEventListener("click", endTour);
+$("tp-back").addEventListener("click", () => { if (tourStep > 0) { tourStep--; renderTourStep(); } });
+$("tp-next").addEventListener("click", () => { if (tourStep < TOUR.length - 1) { tourStep++; renderTourStep(); } else endTour(); });
+$("replay-tour").addEventListener("click", startTour);
 for (const b of document.querySelectorAll("[data-reset]"))
   b.addEventListener("click", () => { $(b.dataset.reset === "classifier" ? "set-classifier-prompt" : "set-question-prompt").value = ""; });
 $("ctx-save").addEventListener("click", async () => {

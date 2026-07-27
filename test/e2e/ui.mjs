@@ -22,6 +22,8 @@ const check = (name, cond, detail = "") => {
 
 const browser = await chromium.launch({ executablePath: EXEC, headless: true, args: ["--no-sandbox"] });
 const page = await browser.newPage({ viewport: { width: 1200, height: 800 } });
+// Don't auto-launch the first-run tour during the main flow (it's a modal).
+await page.addInitScript(() => localStorage.setItem("converse-tour-done", "1"));
 const consoleErrors = [];
 page.on("console", (m) => m.type() === "error" && consoleErrors.push(m.text()));
 page.on("pageerror", (e) => consoleErrors.push(String(e)));
@@ -40,6 +42,7 @@ try {
   check("framework selector populated (MEDDPICC/BANT/SPICED)", fwOpts >= 3, `${fwOpts} options`);
   check("AI provider selector present (Anthropic + OpenAI)", (await page.locator("#set-provider option").count()) === 2);
   check("OpenAI key field + Drive connect button present", (await page.locator("#set-openai-key, #drive-connect").count()) === 2);
+  check("per-field ? help popovers present", (await page.locator(".settings-grid .qm").count()) >= 10);
   await page.fill("#set-speed", "20");
   await page.click("#settings-save");
   await page.waitForFunction(() => document.getElementById("settings-saved")?.textContent?.includes("Saved"));
@@ -107,6 +110,16 @@ try {
   await page.click('.nav-link[data-view="help"]');
   await page.waitForSelector("#view-help:not(.hidden) .help-card");
   check("help view has how-to sections", (await page.locator("#view-help .help-card").count()) >= 8);
+
+  // guided tour launches and dismisses
+  await page.click("#replay-tour");
+  await page.waitForSelector("#tour:not(.hidden)");
+  check("guided tour launches", (await page.textContent("#tp-title"))?.length > 0);
+  await page.click("#tp-next"); // advance a step
+  await page.click("#tp-skip");
+  await page.waitForFunction(() => document.getElementById("tour").classList.contains("hidden"));
+  check("guided tour advances and dismisses", true);
+  await page.click('.nav-link[data-view="help"]'); // tour returned us to home; go back for the theme step
 
   // 11. Theme toggle
   await page.click("#theme-toggle");
