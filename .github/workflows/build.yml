@@ -26,6 +26,9 @@ jobs:
             platform: win
             pattern: release/*.exe
     runs-on: ${{ matrix.os }}
+    env:
+      # Playwright is only used by the local E2E script; don't fetch browsers in CI.
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
     steps:
       - uses: actions/checkout@v4
 

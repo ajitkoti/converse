@@ -5,7 +5,10 @@
   "type": "module",
   "main": "electron/main.cjs",
   "author": "Converse",
-  "repository": { "type": "git", "url": "https://github.com/ajitkoti/converse.git" },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ajitkoti/converse.git"
+  },
   "engines": {
     "node": ">=20"
   },
@@ -16,6 +19,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "e2e": "node test/e2e/ui.mjs",
     "replay": "node --import tsx scripts/replay.ts",
     "connect-drive": "node --import tsx scripts/connect-drive.ts",
     "app": "npm run build && electron .",
@@ -76,6 +80,7 @@
     "@types/ws": "^8.18.1",
     "electron": "^33.4.11",
     "electron-builder": "^25.1.8",
+    "playwright": "^1.62.0",
     "tsx": "^4.19.0",
     "typescript": "^5.7.0",
     "vitest": "^2.1.0"

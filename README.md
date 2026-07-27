@@ -134,8 +134,9 @@ test/                  29 offline tests (engine + server modules)
 ## Developer commands
 
 ```bash
-npm test            # 29 tests, no network, no audio hardware
+npm test            # 32 unit/integration tests, no network, no audio hardware
 npm run typecheck
+npm run e2e         # full browser E2E (start `npm start` first) — drives a demo call end to end
 npm run replay                 # replay good-call in the terminal (offline classifier)
 npm run replay -- bad-call     # replay the vague/deflecting call
 ANTHROPIC_API_KEY=... npm run replay   # use the real claude-haiku-4-5 classifier
