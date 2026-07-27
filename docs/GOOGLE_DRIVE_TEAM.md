@@ -43,9 +43,37 @@ up per rep (tag by Rep name).
 
 ## 2. Headless integration test (what I need from you to verify Drive)
 
-A **service account** lets the test hit real Drive with no browser consent, so I
-can run the full DriveDb round-trip (create folders → store → list → fetch →
-refresh → recording upload → cleanup) against your account.
+The gated test (`npm run test:int`) runs the full DriveDb round-trip (create
+folders → store → list → fetch → refresh → recording upload → cleanup) against
+real Drive. It works with **either** credential path — pick the one that matches
+your Google account:
+
+### 2a. Personal / Gmail account (no Shared Drives) → **OAuth token**
+
+> A **service account cannot write to a consumer (Gmail) Drive** — it has no
+> storage quota and consumer accounts have no Shared Drive to lend it one. Use
+> your own login instead; your account has storage.
+
+1. Create an **OAuth client** (Cloud Console → Credentials → *Desktop app*).
+   Enable the **Drive API** and **Calendar API**. Set `GOOGLE_OAUTH_CLIENT` to the
+   downloaded client JSON.
+2. Mint a token once (opens a browser, you sign in with your account):
+   ```bash
+   npm run connect-drive
+   ```
+   This writes `.gdrive-token.json`.
+3. Provide `.gdrive-token.json` + the client JSON + a **My Drive folder id**
+   (`GDRIVE_TEST_FOLDER`). Then `npm run test:int` runs headlessly using your
+   token — writes land in your own Drive.
+
+   ⚠️ That token grants full Drive access to whatever account you signed in with.
+   Prefer a **throwaway/test Google account**, or just run the manual check in §1
+   yourself instead of handing the token over.
+
+### 2b. Google Workspace → **service account + Shared Drive**
+
+A service account lets the test hit Drive with **no browser consent at all** —
+but only against a **Shared Drive** (Workspace).
 
 **Create it (admin, ~5 min):**
 
