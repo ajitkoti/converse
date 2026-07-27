@@ -210,6 +210,14 @@ body { overflow: hidden; }
 }
 input:focus, textarea:focus { outline: none; border-color: rgba(99,102,241,0.6); }
 
+.oauth-client-setup { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; max-width: 560px; }
+.oauth-client-setup p { margin: 0; font-size: 13px; line-height: 1.5; }
+.oauth-client-setup textarea {
+  background: rgba(255,255,255,0.04); border: 1px solid var(--stroke); border-radius: 10px;
+  color: var(--text); padding: 9px 12px; font-size: 12.5px; font-family: ui-monospace, monospace;
+  line-height: 1.5; width: 100%; resize: vertical;
+}
+
 .recent { margin-top: 26px; display: flex; flex-direction: column; gap: 8px; }
 .setup-status { margin-top: 14px; min-height: 20px; font-size: 13px; color: var(--amber); }
 

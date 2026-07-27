@@ -16,7 +16,7 @@ import { Session, type ServerToClient } from "./session.js";
 import { Settings, type UserSettings } from "./settings.js";
 import { ContextLibrary } from "./context.js";
 import { SessionStore } from "./store.js";
-import { DriveExporter, buildOAuthClient, oauthClientConfigured, DRIVE_SCOPES, TOKEN_PATH } from "./gdrive.js";
+import { DriveExporter, buildOAuthClient, oauthClientConfigured, resolveOAuthClientPath, saveOAuthClient, DRIVE_SCOPES, TOKEN_PATH } from "./gdrive.js";
 import { DriveDb } from "./drive-db.js";
 import { CalendarClient, CALENDAR_SCOPES } from "./gcal.js";
 import { analyzeCallLLM, analyzeCallHeuristic } from "./analysis.js";
@@ -139,25 +139,39 @@ export async function startServer(opts: ServerOptions): Promise<RunningServer> {
         });
       }
       // ---- Google Drive web sign-in ----
+      // Paste an OAuth client json in the app (Settings) — no .env editing needed.
+      if (req.method === "POST" && p === "/api/google/oauth-client") {
+        try {
+          const { client } = await readJson<{ client: string }>(req);
+          saveOAuthClient(client ?? "");
+          drive.reload();
+          calendar.reload();
+          return json(200, { ok: true });
+        } catch (err) {
+          return json(400, { error: err instanceof Error ? err.message : String(err) });
+        }
+      }
       if (req.method === "GET" && p === "/api/drive/connect") {
-        if (!oauthClientConfigured()) {
+        const clientPath = resolveOAuthClientPath();
+        if (!clientPath) {
           return json(400, {
-            error: "No OAuth client configured. Set GOOGLE_OAUTH_CLIENT in .env to a Google 'Desktop app' OAuth client JSON, and add this app's /oauth2callback as an authorized redirect URI.",
+            error: "No OAuth client configured. Paste a Google 'Desktop app' OAuth client JSON in Settings (or set GOOGLE_OAUTH_CLIENT in .env).",
           });
         }
         const redirect = callbackUrl(req);
-        const oauth = buildOAuthClient(process.env.GOOGLE_OAUTH_CLIENT!, redirect);
+        const oauth = buildOAuthClient(clientPath, redirect);
         const url = oauth.generateAuthUrl({ access_type: "offline", scope: [...DRIVE_SCOPES, ...CALENDAR_SCOPES], prompt: "consent" });
         return json(200, { url });
       }
       if (req.method === "GET" && p === "/oauth2callback") {
         const code = url.searchParams.get("code");
-        if (!code || !oauthClientConfigured()) {
+        const clientPath = resolveOAuthClientPath();
+        if (!code || !clientPath) {
           res.writeHead(400, { "Content-Type": "text/html" }).end("Missing code or OAuth client.");
           return;
         }
         try {
-          const oauth = buildOAuthClient(process.env.GOOGLE_OAUTH_CLIENT!, callbackUrl(req));
+          const oauth = buildOAuthClient(clientPath, callbackUrl(req));
           const { tokens } = await oauth.getToken(code);
           fs.writeFileSync(TOKEN_PATH, JSON.stringify(tokens, null, 2));
           drive.reload();

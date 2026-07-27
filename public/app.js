@@ -71,15 +71,41 @@ async function init() {
 function renderDriveConnect() {
   const d = state.drive || {};
   const btn = $("drive-connect"); const note = $("drive-connect-note");
+  const setup = $("oauth-client-setup");
   if (!btn) return;
-  if (d.connected) { btn.style.display = "none"; note.textContent = `Connected (${d.method}).`; }
-  else if (d.canWebConnect) { btn.style.display = ""; btn.disabled = false; note.textContent = "Sign in to enable Drive export."; }
-  else { btn.style.display = ""; btn.disabled = true; note.innerHTML = "Set <code>GOOGLE_OAUTH_CLIENT</code> in .env first (see Help → Drive setup)."; }
+  if (d.connected) {
+    btn.style.display = "none"; note.textContent = `Connected (${d.method}).`;
+    if (setup) setup.classList.add("hidden");
+  } else if (d.canWebConnect) {
+    btn.style.display = ""; btn.disabled = false; note.textContent = "Sign in to enable Drive export.";
+    if (setup) setup.classList.add("hidden");
+  } else {
+    // No OAuth client yet — hide the (useless) button and show the one-time paste box.
+    btn.style.display = "none"; note.textContent = "";
+    if (setup) setup.classList.remove("hidden");
+  }
 }
 async function connectDrive() {
   const r = await api.get("/api/drive/connect");
   if (r.url) location.assign(r.url);
   else toast(r.error || "Could not start Drive sign-in.", "warn");
+}
+async function saveOAuthClient() {
+  const ta = $("oauth-client-json"); const note = $("oauth-client-note");
+  const client = (ta?.value || "").trim();
+  if (!client) { toast("Paste the OAuth client JSON first.", "warn"); return; }
+  const r = await api.post("/api/google/oauth-client", { client });
+  if (r.ok) {
+    if (ta) ta.value = "";
+    if (note) note.textContent = "";
+    toast("OAuth client saved — now click Connect Google Drive.", "info");
+    state = await api.get("/api/state");
+    renderDrivePill();
+    renderDriveConnect();
+  } else {
+    if (note) note.textContent = r.error || "Could not save the OAuth client.";
+    toast(r.error || "Could not save the OAuth client.", "warn");
+  }
 }
 function renderDrivePill() {
   const pill = $("drive-pill"); const d = state.drive || {};
@@ -986,6 +1012,7 @@ $("intel-dismiss").addEventListener("click", () => $("intel-card").classList.add
 $("export-drive").addEventListener("click", () => { send({ type: "export-drive" }); toast("Uploading to Google Drive…", "info"); });
 $("settings-save").addEventListener("click", saveSettings);
 $("drive-connect").addEventListener("click", connectDrive);
+$("oauth-client-save")?.addEventListener("click", saveOAuthClient);
 $("tp-skip").addEventListener("click", endTour);
 $("tp-back").addEventListener("click", () => { if (tourStep > 0) { tourStep--; renderTourStep(); } });
 $("tp-next").addEventListener("click", () => { if (tourStep < TOUR.length - 1) { tourStep++; renderTourStep(); } else endTour(); });

@@ -185,6 +185,19 @@
             <button id="drive-connect" class="btn">Connect Google Drive</button>
             <span id="drive-connect-note" class="meta-dim"></span>
           </div>
+          <!-- Shown only when no OAuth client is configured: paste it once, no .env. -->
+          <div id="oauth-client-setup" class="oauth-client-setup hidden">
+            <p class="meta-dim">
+              One-time setup: in
+              <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener">Google Cloud Console → Credentials</a>,
+              create an <b>OAuth client (Desktop app)</b>, download its JSON, and paste it below. After this, everyone just clicks <b>Connect</b> and signs in — no files, no <code>.env</code>.
+            </p>
+            <textarea id="oauth-client-json" rows="4" placeholder='Paste the OAuth client JSON here, e.g. {"installed":{"client_id":"…","client_secret":"…",…}}'></textarea>
+            <div class="row-actions">
+              <button id="oauth-client-save" class="btn">Save OAuth client</button>
+              <span id="oauth-client-note" class="meta-dim"></span>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -385,8 +398,8 @@
         <details class="help-card">
           <summary>💾 Google Drive &amp; Slack setup</summary>
           <div class="help-body">
-            <p><b>Drive (sign in from the app):</b> in Google Cloud create an OAuth client (Web application or Desktop app) and add <code>http://localhost:5173/oauth2callback</code> as an authorized redirect URI. Point <code>GOOGLE_OAUTH_CLIENT</code> in <code>.env</code> at the downloaded JSON, then click <b>Connect Google Drive</b> in Settings — you'll sign in with Google in your browser, no terminal needed. (You can still use <code>npm run connect-drive</code> if you prefer.)</p>
-            <p>Google requires that one-time OAuth client — there's no way around it — but after that it's a single click.</p>
+            <p><b>Drive (sign in from the app):</b> in Google Cloud create an OAuth client (<b>Desktop app</b>) and download its JSON. Then, in <b>Settings → Google Drive</b>, <b>paste that JSON</b> once and click <b>Connect Google Drive</b> — you'll sign in with Google in your browser, no <code>.env</code> and no terminal. (You can still set <code>GOOGLE_OAUTH_CLIENT</code> in <code>.env</code>, or use <code>npm run connect-drive</code>, if you prefer.)</p>
+            <p>Google requires that one-time OAuth client — there's no way around it — but only one person sets it up (paste or bundle it once); after that every user just clicks <b>Connect</b> and signs in. Personal Gmail accounts will see a one-time "unverified app → continue" screen; that's expected for a self-hosted app.</p>
             <p><b>Slack:</b> create an incoming webhook and paste its URL into <b>Settings → Slack webhook URL</b>. Then use <b>Slack</b> on the summary.</p>
           </div>
         </details>
