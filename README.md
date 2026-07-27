@@ -71,8 +71,14 @@ shows up under **History**.
   the **Settings** tab (persisted to `converse.config.json`).
 - **Live coaching** — real-time signals on long monologues, lopsided talk ratio,
   and too-few-questions, plus live questions/WPM stats.
-- **Objection detection** — flags price/timing/competitor/authority objections as
-  the prospect raises them and surfaces the matching battlecard from your context.
+- **Objection detection + objection trees** — flags price/timing/competitor/
+  authority objections as the prospect raises them, surfaces the matching
+  battlecard, and shows a multi-step response flow (acknowledge → reframe →
+  evidence → advance) with ready-to-say lines.
+- **Competitive intel + case studies** — when the prospect names a competitor,
+  the matching battlecard pops up; when they ask for proof/ROI/references, a
+  relevant case study surfaces instead. Competitors are recognized from a
+  built-in list, your Settings, and your battlecard filenames.
 - **Frameworks** — MEDDPICC (default), BANT, or SPICED, switchable in Settings
   (the slot schema is fully config-driven).
 - **Exports** — post-call summary to Google Drive, **Slack** (webhook), an

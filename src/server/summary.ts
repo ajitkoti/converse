@@ -110,6 +110,16 @@ export function buildSummaryMarkdown(r: SessionRecord): string {
     lines.push("");
   }
 
+  if (r.intel && r.intel.length) {
+    lines.push(`## In-call intelligence (${r.intel.length})`);
+    lines.push("");
+    for (const i of r.intel) {
+      const tag = i.kind === "competitor" ? "🏁" : "📊";
+      lines.push(`- **[${fmt(i.ts)}] ${tag} ${i.label}**${i.doc ? ` — surfaced: ${i.doc}` : ""}`);
+    }
+    lines.push("");
+  }
+
   if (r.suggestions.length) {
     lines.push(`## Copilot nudges (${r.suggestions.length})`);
     lines.push("");

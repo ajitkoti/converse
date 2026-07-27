@@ -21,6 +21,8 @@ import { OfflineLlmClient } from "./offline-llm.js";
 import { frameworkOverride } from "./frameworks.js";
 import { Coach, type CoachingSignal, type CoachingMetrics } from "./coaching.js";
 import { detectObjection, type ObjectionType } from "./objections.js";
+import { objectionTree, type ObjectionStep } from "./objection-tree.js";
+import { IntelScout, type IntelKind } from "./intel.js";
 import { analyzeCallLLM, analyzeCallHeuristic } from "./analysis.js";
 import type { LlmRequest } from "../engine/llm.js";
 import type { CallAnalysis } from "./types.js";
@@ -59,7 +61,9 @@ export type ServerToClient =
       cue: string;
       doc?: string;
       snippet?: string;
+      steps: ObjectionStep[];
     }
+  | { type: "intel"; kind: IntelKind; label: string; cue: string; doc?: string; snippet?: string }
   | { type: "export"; target: "slack"; ok: boolean; error?: string }
   | { type: "ended" };
 
@@ -116,6 +120,9 @@ export class Session {
   #coach = new Coach();
   #objections: Array<{ ts: number; type: string; label: string; doc?: string }> = [];
   #lastObjectionAt: Partial<Record<string, number>> = {};
+  #intel: Array<{ ts: number; kind: IntelKind; label: string; doc?: string }> = [];
+  #scout: IntelScout | null = null;
+  #lastIntelAt: Partial<Record<string, number>> = {};
   #clfMs: number[] = [];
   #nudgeMs: number[] = [];
   #specHits = 0;
@@ -162,6 +169,7 @@ export class Session {
       label: s.label,
       escalateBy: config.budgets[s.id]?.escalateBy ?? null,
     }));
+    this.#scout = new IntelScout(this.#env.context, this.#env.settings.get().competitors ?? []);
     this.#bus.on("transcript", (e) => {
       this.#engine!.ingest(e);
       if (e.isFinal && !e.utteranceEnd && e.text) {
@@ -173,7 +181,10 @@ export class Session {
         const sig = this.#coach.ingest(e);
         if (sig) this.#send({ type: "coaching", signal: sig });
 
-        if (e.speaker === "prospect") this.#checkObjection(e.text, e.tsEnd);
+        if (e.speaker === "prospect") {
+          this.#checkObjection(e.text, e.tsEnd);
+          this.#checkIntel(e.text, e.tsEnd);
+        }
       }
       this.#send({ type: "transcript", event: e });
     });
@@ -311,6 +322,25 @@ export class Session {
       cue: hit.cue,
       doc: match?.name,
       snippet: match?.snippet,
+      steps: objectionTree(hit.type),
+    });
+  }
+
+  #checkIntel(text: string, ts: number): void {
+    const hit = this.#scout?.detect(text);
+    if (!hit) return;
+    const key = `${hit.kind}:${hit.label}`;
+    const last = this.#lastIntelAt[key];
+    if (last !== undefined && ts - last < 60_000) return; // per-cue cooldown
+    this.#lastIntelAt[key] = ts;
+    this.#intel.push({ ts, kind: hit.kind, label: hit.label, doc: hit.doc });
+    this.#send({
+      type: "intel",
+      kind: hit.kind,
+      label: hit.label,
+      cue: hit.cue,
+      doc: hit.doc,
+      snippet: hit.snippet,
     });
   }
 
@@ -358,6 +388,7 @@ export class Session {
       talk: this.#talk,
       coaching: this.#coach.metrics(),
       objections: this.#objections,
+      intel: this.#intel,
       perf: {
         avgClassifierMs: avg(this.#clfMs),
         avgNudgeMs: avg(this.#nudgeMs),

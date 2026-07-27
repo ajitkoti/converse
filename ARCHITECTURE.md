@@ -311,6 +311,14 @@ the engine, none of them imported by it:
   re-saved into the record, and rendered into the summary Markdown + exports.
   Real (non-offline) LLM calls are counted per session (`perf.llmCalls`) and
   aggregated on the dashboard.
+- **In-call intelligence** (`intel.ts`, `objection-tree.ts`, `objections.ts`):
+  deterministic keyword cues on PROSPECT speech drive three proactive surfaces —
+  objection detection (with a multi-step `objectionTree` response flow), competitor
+  mentions (→ battlecard), and proof requests (→ case study). Competitor names are
+  the union of a default list, Settings, and names inferred from context filenames.
+  Assets come from the Context library, so surfacing stays grounded in your
+  playbook. Hits are streamed (`{type:"objection"}` / `{type:"intel"}`) and recorded
+  for the summary.
 - **Drive export** (`gdrive.ts`): optional OAuth/service-account upload of the
   same artifacts; gracefully disabled when unconfigured (local save always works).
 

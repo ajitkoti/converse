@@ -98,6 +98,8 @@ try {
   check("AI debrief has went-well/red-flag columns", (await page.locator("#summary-analysis .ai-col").count()) >= 2);
   check("AI debrief has a follow-up email", (await page.locator("#summary-analysis .ai-email pre").count()) === 1);
   check("AI debrief shows a sentiment badge", (await page.locator("#summary-analysis .ai-sentiment").count()) === 1);
+  // good-call names Workday / NetSuite, so competitive intel should have fired
+  check("summary shows in-call intelligence", (await page.locator("#summary-intel .intel-row").count()) >= 1);
   await page.screenshot({ path: path.join(SHOTS, "3-summary.png") });
 
   // 8. Dashboard
