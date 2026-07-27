@@ -84,10 +84,49 @@ export function buildOAuthClient(clientJsonPath: string, redirectOverride?: stri
   return new google.auth.OAuth2(creds.client_id, creds.client_secret, redirect);
 }
 
+/**
+ * Where the OAuth client json is found, so an end user never has to touch .env.
+ * Checked in order:
+ *   1. GOOGLE_OAUTH_CLIENT env (explicit, for dev/CI)
+ *   2. a client pasted into the app's Settings (written to OAUTH_CLIENT_PASTED)
+ *   3. a client bundled with the app (dropped at OAUTH_CLIENT_BUNDLED before build)
+ * Both files are gitignored — a client secret must never be committed. For a
+ * Desktop-type client Google treats the secret as non-confidential, so bundling
+ * one with the packaged app is the standard installed-app pattern.
+ */
+export const OAUTH_CLIENT_PASTED = "oauth-client.local.json";
+export const OAUTH_CLIENT_BUNDLED = "oauth-client.json";
+
+/** Resolve the OAuth client json path from env → pasted → bundled; undefined if none. */
+export function resolveOAuthClientPath(): string | undefined {
+  const candidates = [process.env.GOOGLE_OAUTH_CLIENT, OAUTH_CLIENT_PASTED, OAUTH_CLIENT_BUNDLED];
+  return candidates.find((p): p is string => !!p && fs.existsSync(p));
+}
+
 /** Is an OAuth client configured (so the web sign-in flow is possible)? */
 export function oauthClientConfigured(): boolean {
-  const p = process.env.GOOGLE_OAUTH_CLIENT;
-  return !!p && fs.existsSync(p);
+  return !!resolveOAuthClientPath();
+}
+
+/**
+ * Validate a pasted OAuth client json and store it (so the user can sign in
+ * without editing .env). Accepts the file Google Cloud Console hands you for a
+ * Desktop app (an `installed` block) or a Web application (`web`).
+ */
+export function saveOAuthClient(rawJson: string): void {
+  let parsed: { installed?: Record<string, unknown>; web?: Record<string, unknown> };
+  try {
+    parsed = JSON.parse(rawJson);
+  } catch {
+    throw new Error("That isn't valid JSON — paste the whole OAuth client file.");
+  }
+  const creds = parsed.installed ?? parsed.web;
+  if (!creds || !creds.client_id || !creds.client_secret) {
+    throw new Error(
+      "Missing an 'installed' or 'web' block with client_id/client_secret. In Google Cloud Console → Credentials, create an OAuth client (Desktop app) and download its JSON.",
+    );
+  }
+  fs.writeFileSync(OAUTH_CLIENT_PASTED, JSON.stringify(parsed, null, 2));
 }
 
 export class DriveExporter implements DriveClient {
@@ -105,8 +144,8 @@ export class DriveExporter implements DriveClient {
 
   #init(): void {
     try {
-      const clientPath = process.env.GOOGLE_OAUTH_CLIENT;
-      if (clientPath && fs.existsSync(clientPath) && fs.existsSync(TOKEN_PATH)) {
+      const clientPath = resolveOAuthClientPath();
+      if (clientPath && fs.existsSync(TOKEN_PATH)) {
         const oauth = buildOAuthClient(clientPath);
         oauth.setCredentials(JSON.parse(fs.readFileSync(TOKEN_PATH, "utf8")));
         this.#drive = google.drive({ version: "v3", auth: oauth });
