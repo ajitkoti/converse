@@ -109,20 +109,20 @@
         <h2>Settings</h2>
         <p class="sub">Keys and preferences are stored locally in <code>converse.config.json</code>. Leave a field blank to use the default. New to a setting? The <b>Help</b> tab explains each one.</p>
         <div class="settings-grid">
-          <label class="field"><span>Prospect persona</span><input id="set-persona" placeholder="CFO — ROI & risk focused" /></label>
-          <label class="field"><span>Demo speed (×)</span><input id="set-speed" type="number" min="1" max="20" /></label>
-          <label class="field"><span>Classifier model</span><input id="set-model-classifier" placeholder="claude-haiku-4-5" /></label>
-          <label class="field"><span>Question model</span><input id="set-model-question" placeholder="claude-haiku-4-5" /></label>
-          <label class="field"><span>Suggestion cooldown (s)</span><input id="set-cooldown" type="number" min="0" /></label>
-          <label class="field"><span>Google Drive folder id</span><input id="set-drive-folder" placeholder="(blank = auto 'Converse Sessions')" /></label>
-          <label class="field"><span>Deepgram API key <em id="dg-set" class="key-set"></em></span><input id="set-deepgram-key" type="password" placeholder="for live transcription" autocomplete="off" /></label>
-          <label class="field"><span>AI provider</span><select id="set-provider"><option value="anthropic">Anthropic (Claude)</option><option value="openai">OpenAI (GPT)</option></select></label>
-          <label class="field"><span>Anthropic API key <em id="an-set" class="key-set"></em></span><input id="set-anthropic-key" type="password" placeholder="for Claude suggestions" autocomplete="off" /></label>
-          <label class="field"><span>OpenAI API key <em id="oa-set" class="key-set"></em></span><input id="set-openai-key" type="password" placeholder="for GPT suggestions" autocomplete="off" /></label>
-          <label class="field"><span>Framework (live calls)</span><select id="set-framework"></select></label>
-          <label class="field"><span>Slack webhook URL</span><input id="set-slack" placeholder="https://hooks.slack.com/services/… (optional)" autocomplete="off" /></label>
-          <label class="check"><input id="set-autosave" type="checkbox" /> <span>Auto-save every session locally</span></label>
-          <label class="check"><input id="set-usecontext" type="checkbox" /> <span>Inject context docs into suggestions</span></label>
+          <label class="field"><span>Prospect persona <b class="qm" data-help="Who you're selling to, e.g. 'CFO — cares about ROI and risk'. The copilot tunes its questions to what this persona cares about.">?</b></span><input id="set-persona" placeholder="CFO — ROI & risk focused" /></label>
+          <label class="field"><span>Demo speed (×) <b class="qm" data-help="How fast demo calls replay. Higher = quicker. Doesn't affect live calls.">?</b></span><input id="set-speed" type="number" min="1" max="20" /></label>
+          <label class="field"><span>Classifier model <b class="qm" data-help="The model that decides which areas the prospect has covered. Blank = the provider's default (claude-haiku-4-5 / gpt-4o-mini).">?</b></span><input id="set-model-classifier" placeholder="claude-haiku-4-5" /></label>
+          <label class="field"><span>Question model <b class="qm" data-help="The model that writes the bridging questions. Blank = the provider's default.">?</b></span><input id="set-model-question" placeholder="claude-haiku-4-5" /></label>
+          <label class="field"><span>Suggestion cooldown (s) <b class="qm" data-help="Minimum seconds between nudges so the copilot doesn't spam you. Default 90.">?</b></span><input id="set-cooldown" type="number" min="0" /></label>
+          <label class="field"><span>Google Drive folder id <b class="qm" data-help="Where exports go. Leave blank to auto-create/use a 'Converse Sessions' folder.">?</b></span><input id="set-drive-folder" placeholder="(blank = auto 'Converse Sessions')" /></label>
+          <label class="field"><span>Deepgram API key <em id="dg-set" class="key-set"></em> <b class="qm" data-help="Required for live transcription (console.deepgram.com). Stored locally, never shown back.">?</b></span><input id="set-deepgram-key" type="password" placeholder="for live transcription" autocomplete="off" /></label>
+          <label class="field"><span>AI provider <b class="qm" data-help="Which LLM writes suggestions on live calls: Anthropic (Claude) or OpenAI (GPT). Paste the matching key.">?</b></span><select id="set-provider"><option value="anthropic">Anthropic (Claude)</option><option value="openai">OpenAI (GPT)</option></select></label>
+          <label class="field"><span>Anthropic API key <em id="an-set" class="key-set"></em> <b class="qm" data-help="Your Claude key (console.anthropic.com). Used when provider = Anthropic. Stored locally, never shown back.">?</b></span><input id="set-anthropic-key" type="password" placeholder="for Claude suggestions" autocomplete="off" /></label>
+          <label class="field"><span>OpenAI API key <em id="oa-set" class="key-set"></em> <b class="qm" data-help="Your OpenAI key (platform.openai.com). Used when provider = OpenAI. Stored locally, never shown back.">?</b></span><input id="set-openai-key" type="password" placeholder="for GPT suggestions" autocomplete="off" /></label>
+          <label class="field"><span>Framework (live calls) <b class="qm" data-help="Which framework to track live: MEDDPICC (default), BANT, or SPICED. The rail and time budgets adapt. Demos always use MEDDPICC.">?</b></span><select id="set-framework"></select></label>
+          <label class="field"><span>Slack webhook URL <b class="qm" data-help="An incoming-webhook URL from Slack. With it set, the summary's 'Slack' button posts the recap to that channel.">?</b></span><input id="set-slack" placeholder="https://hooks.slack.com/services/… (optional)" autocomplete="off" /></label>
+          <label class="check"><input id="set-autosave" type="checkbox" /> <span>Auto-save every session locally <b class="qm" data-help="Keep a copy of every finished call in data/sessions/ (JSON + summary + transcript). Turn off to keep nothing on disk.">?</b></span></label>
+          <label class="check"><input id="set-usecontext" type="checkbox" /> <span>Inject context docs into suggestions <b class="qm" data-help="Feed your Context docs (battlecards, product) into the question generator so nudges are specific to your product.">?</b></span></label>
         </div>
 
         <details class="prompt-box">
@@ -186,7 +186,8 @@
           <summary>🚀 Getting started</summary>
           <div class="help-body">
             <p><b>Demo (no setup):</b> on <b>Home</b>, click <b>Demo · strong call</b> to watch the areas fill green, or <b>Demo · rough call</b> to see the copilot nudge you. Demos replay a scripted call in under a minute — no keys, no mic.</p>
-            <p><b>Go live:</b> add a <b>Deepgram API key</b> in <b>Settings</b> (and optionally an Anthropic key for sharper questions), then click <b>Go live</b>. Allow your microphone (that's you), and share your meeting tab with audio (that's the prospect). Your two voices are transcribed on separate channels, so a rep <i>asking</i> about budget never marks budget covered.</p>
+            <p><b>Go live:</b> add a <b>Deepgram API key</b> in <b>Settings</b> (and an Anthropic or OpenAI key for sharper questions), then click <b>Go live</b>. Allow your microphone (that's you), and share your meeting tab with audio (that's the prospect). Your two voices are transcribed on separate channels, so a rep <i>asking</i> about budget never marks budget covered.</p>
+            <p><button id="replay-tour" class="btn small">▶ Take the guided tour</button></p>
           </div>
         </details>
 
@@ -342,6 +343,22 @@
 
       <div id="toast" class="toast hidden"></div>
     </section>
+
+    <!-- First-run guided tour -->
+    <div id="tour" class="tour hidden">
+      <div id="tour-ring" class="tour-ring"></div>
+      <div id="tour-pop" class="tour-pop">
+        <div class="tp-step" id="tp-step"></div>
+        <div class="tp-title" id="tp-title"></div>
+        <div class="tp-text" id="tp-text"></div>
+        <div class="tp-actions">
+          <button id="tp-skip" class="btn ghost small">Skip</button>
+          <span class="grow"></span>
+          <button id="tp-back" class="btn ghost small">Back</button>
+          <button id="tp-next" class="btn small">Next</button>
+        </div>
+      </div>
+    </div>
 
     <script src="/app.js" type="module"></script>
   </body>
