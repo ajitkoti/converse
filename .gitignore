@@ -12,3 +12,6 @@ coverage/
 # user-generated / secrets
 converse.config.json
 .gdrive-token.json
+
+# npm pack output
+*.tgz
