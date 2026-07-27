@@ -195,6 +195,11 @@ Live calls are latency-sensitive, so the engine optimizes the felt path:
 - **Telemetry** — every classifier/suggestion round emits a `metrics` event
   (latency, speculative flag); the overlay shows a live readout and the summary
   records averages + echoes suppressed.
+- **Resilient transcription** — `DeepgramLive` auto-reconnects on an unexpected
+  drop (exponential backoff, up to 8 tries) so a network blip never kills a live
+  call, and applies backpressure (drops audio) if the send buffer exceeds 512 KB
+  so a slow uplink can't blow up memory. It emits reconnecting/reconnected/failed
+  status for the overlay. Injectable socket factory makes it unit-testable.
 
 ## Escalation & suggestion (Phase 3)
 

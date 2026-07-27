@@ -242,9 +242,19 @@ export class Session {
       model: this.#env.deepgramModel,
       utteranceEndMs: this.#config.deepgram.utterance_end_ms,
     });
+    const who = speaker === "rep" ? "your mic" : "the prospect audio";
     dg.on("message", (msg) => this.#bus.ingestDeepgram(msg, speaker));
     dg.on("error", (err) =>
       this.#send({ type: "status", text: `Deepgram (${speaker}) error: ${err.message}`, level: "error" }),
+    );
+    dg.on("reconnecting", () =>
+      this.#send({ type: "status", text: `Reconnecting transcription for ${who}…`, level: "warn" }),
+    );
+    dg.on("reconnected", () =>
+      this.#send({ type: "status", text: `Reconnected — ${who} transcription is back.`, level: "info" }),
+    );
+    dg.on("failed", () =>
+      this.#send({ type: "status", text: `Lost transcription for ${who} — check your network.`, level: "error" }),
     );
     return dg;
   }
