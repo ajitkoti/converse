@@ -176,6 +176,26 @@ real LLM latency for Phase 3's "drop if generation > 2.5s" rule — is injectabl
      economic-buyer answer stays `partial`, never `covered`).
 - Every call + response + merge decision is logged as one JSONL line.
 
+## Real-time performance
+
+Live calls are latency-sensitive, so the engine optimizes the felt path:
+
+- **Speculative pre-generation** — during the prospect's turn the engine
+  pre-generates the most-overdue slot's question (`#prewarm`) and caches it; when
+  the pause fires it's shown with ~0 latency. A `metrics` guidance event flags
+  `speculative: true`.
+- **Adaptive cadence** — the classifier also runs on the prospect's UtteranceEnd
+  (throttled by `adaptiveMinGapSeconds`), so coverage updates seconds after they
+  reveal something instead of on a fixed tick.
+- **Prompt caching + incremental input** — the static classifier system prompt is
+  sent with Anthropic `cache_control`, and only new transcript since the last run
+  (plus a small overlap) is sent (`incremental`), cutting latency + cost.
+- **Echo guard** — `TranscriptBus` drops prospect-channel lines that echo a recent
+  rep line (mic bleed), so rep speech can't fake prospect evidence.
+- **Telemetry** — every classifier/suggestion round emits a `metrics` event
+  (latency, speculative flag); the overlay shows a live readout and the summary
+  records averages + echoes suppressed.
+
 ## Escalation & suggestion (Phase 3)
 
 Time budgets live in `config.json` (`budgets`, seconds of call time). A suggestion

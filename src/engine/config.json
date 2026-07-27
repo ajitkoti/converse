@@ -15,7 +15,11 @@
     "everySeconds": 20,
     "everyFinalUtterances": 6,
     "windowSeconds": 90,
-    "maxOutputTokens": 1024
+    "maxOutputTokens": 1024,
+    "incremental": true,
+    "incrementalOverlapSeconds": 12,
+    "adaptiveMinGapSeconds": 4,
+    "cacheSystemPrompt": true
   },
 
   "suggestion": {
@@ -25,7 +29,9 @@
     "dropIfExceedsMs": 2500,
     "maxWords": 20,
     "maxOutputTokens": 200,
-    "snoozeSeconds": 300
+    "snoozeSeconds": 300,
+    "speculative": true,
+    "prewarmMinGapSeconds": 3
   },
 
   "slots": [

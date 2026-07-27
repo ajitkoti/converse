@@ -81,4 +81,13 @@ export type GuidanceEvent =
       slotId: SlotId;
       reason: "latency-exceeded" | "empty-generation" | "generation-error";
       latencyMs: number;
+    }
+  | {
+      /** real-time performance telemetry */
+      type: "metrics";
+      ts: number;
+      kind: "classify" | "suggestion";
+      ms: number;
+      /** true when a suggestion was served from the speculative pre-gen cache */
+      speculative?: boolean;
     };

@@ -206,21 +206,42 @@ function updateTalkMeter() {
   $("tm-rep").style.width = rep + "%"; $("tm-pro").style.width = (100 - rep) + "%";
   $("tm-label").textContent = total ? `you ${rep}% · them ${100 - rep}%` : "—";
 }
+let perf = { clf: null, nudge: null, spec: false };
 function onGuidance(ev) {
   if (ev.type === "slots") { applySlots(ev.slots); refreshRail(); updateScore(); if (inspectSlot) openInspector(inspectSlot); }
   else if (ev.type === "suggestion") showCard(ev);
+  else if (ev.type === "metrics") updatePerf(ev);
   else if (ev.type === "suggestion-dropped" && ev.reason !== "latency-exceeded") { /* silent */ }
 }
+function updatePerf(ev) {
+  if (ev.kind === "classify") perf.clf = ev.ms;
+  else if (ev.kind === "suggestion") { perf.nudge = ev.ms; perf.spec = !!ev.speculative; }
+  const parts = [];
+  if (perf.clf != null) parts.push(`clf ${Math.round(perf.clf)}ms`);
+  if (perf.nudge != null) parts.push(`nudge ${perf.spec ? "⚡" : Math.round(perf.nudge) + "ms"}`);
+  $("perf").textContent = parts.join(" · ");
+}
+let typeTimer = null;
 function showCard(ev) {
   currentSlot = ev.slotId;
   const def = slotDefs.find((s) => s.id === ev.slotId);
   $("card-slot").textContent = def ? def.label : ev.slotId;
   $("card-reason").textContent = (ev.reason || "").includes("manual") ? "you asked" : "nudge";
-  $("card-q").textContent = ev.question;
+  typewrite($("card-q"), ev.question);
   const card = $("card"); card.classList.remove("hidden");
   requestAnimationFrame(() => card.classList.add("show"));
   if (cardTimer) clearTimeout(cardTimer);
   cardTimer = setTimeout(dismissCard, 25000);
+}
+function typewrite(el, text) {
+  if (typeTimer) clearInterval(typeTimer);
+  el.textContent = "";
+  const words = text.split(" ");
+  let i = 0;
+  typeTimer = setInterval(() => {
+    el.textContent = words.slice(0, ++i).join(" ");
+    if (i >= words.length) { clearInterval(typeTimer); typeTimer = null; }
+  }, 45);
 }
 function dismissCard() {
   const card = $("card"); card.classList.remove("show"); currentSlot = null;
@@ -301,6 +322,7 @@ function endCall() { send({ type: "stop" }); if (audioStop) audioStop(); }
 function resetOverlay() {
   elapsedMs = 0; currentSlot = null; talk = { repMs: 0, prospectMs: 0 }; coach = { repWords: 0, questions: 0 };
   $("coach-stats").textContent = ""; $("obj-card").classList.add("hidden");
+  perf = { clf: null, nudge: null, spec: false }; $("perf").textContent = "";
   $("timer").textContent = "00:00"; $("caption").innerHTML = ""; $("tx-list").innerHTML = ""; $("notes-area").value = "";
   $("rec").style.animation = ""; $("rec").style.background = "var(--green)";
   $("transcript-panel").classList.add("hidden"); $("notes-panel").classList.add("hidden"); $("legend").classList.add("hidden");
@@ -326,14 +348,19 @@ function renderSummary(rec, opts = {}) {
     : "";
 
   const c = rec.coaching;
-  $("summary-coaching").innerHTML = c
-    ? [
-        coachTile(c.talkRatioRepPct + "%", "you talked", c.talkRatioRepPct > 65),
-        coachTile(c.questionsAsked, "questions", c.questionsAsked < 3),
-        coachTile(c.repWpm, "your pace (wpm)", c.repWpm > 180),
-        coachTile(fmt(c.longestMonologueMs), "longest monologue", c.longestMonologueMs > 75000),
-      ].join("")
-    : "";
+  const p = rec.perf;
+  $("summary-coaching").innerHTML = [
+    ...(c ? [
+      coachTile(c.talkRatioRepPct + "%", "you talked", c.talkRatioRepPct > 65),
+      coachTile(c.questionsAsked, "questions", c.questionsAsked < 3),
+      coachTile(c.repWpm, "your pace (wpm)", c.repWpm > 180),
+      coachTile(fmt(c.longestMonologueMs), "longest monologue", c.longestMonologueMs > 75000),
+    ] : []),
+    ...(p ? [
+      coachTile((p.avgNudgeMs || 0) + "ms", `nudge latency${p.speculativeHits ? " · " + p.speculativeHits + "⚡" : ""}`, false),
+      coachTile((p.avgClassifierMs || 0) + "ms", "classifier latency", false),
+    ] : []),
+  ].join("");
 
   $("summary-objections").innerHTML = rec.objections && rec.objections.length
     ? `<h3>Objections raised (${rec.objections.length})</h3>` + rec.objections.map((o) =>

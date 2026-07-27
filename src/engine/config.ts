@@ -39,6 +39,10 @@ export interface EngineConfig {
     everyFinalUtterances: number;
     windowSeconds: number;
     maxOutputTokens: number;
+    incremental: boolean;
+    incrementalOverlapSeconds: number;
+    adaptiveMinGapSeconds: number;
+    cacheSystemPrompt: boolean;
   };
   suggestion: {
     windowSeconds: number;
@@ -48,6 +52,8 @@ export interface EngineConfig {
     maxWords: number;
     maxOutputTokens: number;
     snoozeSeconds: number;
+    speculative: boolean;
+    prewarmMinGapSeconds: number;
   };
   slots: SlotDef[];
   budgets: Record<string, SlotBudget>;

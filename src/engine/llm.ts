@@ -24,6 +24,12 @@ export interface LlmRequest {
    * to force JSON). Adapters that can't prefill may ignore it.
    */
   prefill?: string;
+  /**
+   * Hint that the (large, static) system prompt should be cached by the provider
+   * to cut latency + cost. Anthropic uses cache_control; OpenAI caches
+   * automatically, so its adapter can ignore this.
+   */
+  cacheSystem?: boolean;
 }
 
 export interface LlmClient {

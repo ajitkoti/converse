@@ -267,6 +267,18 @@
         </details>
 
         <details class="help-card">
+          <summary>⚡ Real-time performance</summary>
+          <div class="help-body">
+            <ul>
+              <li><b>Instant nudges</b> — while the prospect is talking, the copilot pre-generates the question for the most-overdue area, so it appears the <i>instant</i> they pause (the ⚡ in the top-bar readout means it was served with zero wait).</li>
+              <li><b>Faster coverage</b> — the classifier re-scores right after the prospect finishes a thought (not on a fixed timer), caches its static prompt, and only sends new transcript — so dots update in seconds.</li>
+              <li><b>Echo guard</b> — if your mic bleeds into the prospect's audio channel, those echoed lines are dropped so your own words never fake coverage.</li>
+              <li><b>Latency readout</b> — the top bar shows live classifier / nudge latency; the summary reports the averages. Great for spotting a slow model or network.</li>
+            </ul>
+          </div>
+        </details>
+
+        <details class="help-card">
           <summary>🗑️ Your data (save, backup, delete)</summary>
           <div class="help-body">
             <p>Every call is saved locally (nothing leaves your machine except what you export to your own keys/Drive). In <b>History</b> you can delete one call, <b>Export backup (.json)</b>, <b>Export &amp; wipe all</b>, or <b>Delete all</b>. Wiping can't be undone — keep a backup if you might want the calls later.</p>
@@ -293,6 +305,7 @@
           <span id="mode-badge" class="mode-badge"></span>
           <span id="score" class="score">0/8</span>
           <span id="coach-stats" class="coach-stats"></span>
+          <span id="perf" class="coach-stats perf" title="Real-time latency — classifier / nudge (⚡ = instant, pre-generated)"></span>
         </div>
         <div id="talk-meter" class="talk-meter" title="Talk time — you vs prospect">
           <div class="tm-bar"><i id="tm-rep"></i><b id="tm-pro"></b></div>

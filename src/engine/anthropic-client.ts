@@ -26,10 +26,15 @@ export class AnthropicLlmClient implements LlmClient {
     // Prefill via an assistant turn forces the reply shape (e.g. JSON).
     if (req.prefill) messages.push({ role: "assistant", content: req.prefill });
 
+    // Cache the static system prompt to cut latency + cost on repeated calls.
+    const system: Anthropic.MessageCreateParams["system"] = req.cacheSystem
+      ? [{ type: "text", text: req.system, cache_control: { type: "ephemeral" } }]
+      : req.system;
+
     const res = await this.#client.messages.create({
       model: req.model,
       max_tokens: req.maxTokens,
-      system: req.system,
+      system,
       messages,
     });
     return res.content

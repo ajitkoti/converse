@@ -18,11 +18,14 @@ interface Harness {
   suggestions: Extract<GuidanceEvent, { type: "suggestion" }>[];
   dropped: Extract<GuidanceEvent, { type: "suggestion-dropped" }>[];
 }
-function makeEngine(override: ConfigOverride, opts?: { clock?: FakeClock; latencyMs?: number }): Harness {
+function makeEngine(override: ConfigOverride, opts?: { clock?: FakeClock; latencyMs?: number; speculative?: boolean }): Harness {
   const clock = opts?.clock;
+  // Most timing tests exercise the LIVE generation path; speculative pre-gen is
+  // covered by its own test. Default it off here unless a test opts in.
+  const merged: ConfigOverride = { ...override, suggestion: { ...(override.suggestion ?? {}), speculative: opts?.speculative ?? false } };
   const engine = new QualificationEngine({
     llm: new FakeLlmClient({ clock, questionLatencyMs: opts?.latencyMs }),
-    config: loadConfig(override),
+    config: loadConfig(merged),
     monotonicNow: clock ? clock.now : undefined,
   });
   const suggestions: Harness["suggestions"] = [];
@@ -133,5 +136,21 @@ describe("QualificationEngine — Phase 3 escalation + suggestion", () => {
     ]);
     expect(h.suggestions.length).toBe(1);
     expect(h.suggestions[0]?.slotId).toBe("identifyPain"); // metrics snoozed
+  });
+
+  it("serves a pre-generated question INSTANTLY at the pause (speculative)", async () => {
+    const metrics: Extract<GuidanceEvent, { type: "metrics" }>[] = [];
+    const h = makeEngine({ budgets: { identifyPain: { escalateBy: 5 } } }, { speculative: true });
+    h.engine.on("guidance", (e) => { if (e.type === "metrics") metrics.push(e); });
+    await feed(h.engine, [
+      ev("prospect", "we are still figuring things out honestly", 16, 20),
+      marker("prospect", 20.5),
+    ]);
+    expect(h.suggestions.length).toBe(1);
+    // pre-warmed during the prospect's turn → shown with ~0 latency
+    expect(h.suggestions[0]?.latencyMs).toBe(0);
+    const suggMetric = metrics.find((m) => m.kind === "suggestion");
+    expect(suggMetric?.speculative).toBe(true);
+    expect(metrics.some((m) => m.kind === "classify")).toBe(true);
   });
 });
