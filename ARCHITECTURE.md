@@ -315,6 +315,11 @@ the engine, none of them imported by it:
   rep (`record.rep`, stamped from Settings) into four deterministic skill scores
   (discovery, listening, questioning, objection handling), an overall grade, a
   per-call review list, and a trend — plus a team roll-up when >1 rep is present.
+- **Google Calendar** (`gcal.ts`): read-only, reusing the Drive OAuth token (one
+  sign-in grants `drive.file` + `calendar.readonly`). `GET /api/calendar/events`
+  returns normalized upcoming/recent meetings; `normalizeEvents` is a pure, tested
+  function (drops self/resource attendees, handles all-day). The Pre-call view
+  lists upcoming meetings and prefills persona/account from a picked one.
 - **Pre-call brief** (`precall.ts`, `llm-factory.ts`): `GET /api/precall-brief`
   builds a briefing from saved history + the active framework — last-call recap,
   agenda (open gaps first), likely objections (tallied across history), opener.

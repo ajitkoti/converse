@@ -114,6 +114,8 @@ try {
   // 8b. Pre-call brief (uses the just-recorded demo call as history)
   await page.click('.nav-link[data-view="precall"]');
   await page.waitForSelector("#view-precall:not(.hidden)");
+  await page.waitForFunction(() => document.querySelector("#pc-calendar")?.textContent?.trim(), null, { timeout: 8000 });
+  check("pre-call shows calendar block", (await page.textContent("#pc-calendar"))?.length > 0);
   await page.fill("#pc-persona", "CFO — cares about ROI");
   await page.click("#pc-generate");
   await page.waitForFunction(() => document.querySelector("#precall-result .pc-agenda"), null, { timeout: 15000 });

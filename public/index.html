@@ -60,6 +60,7 @@
       <section id="view-precall" class="view hidden">
         <h2>Pre-call brief</h2>
         <p class="sub">A one-screen briefing before you dial: who you're meeting, a recap of your last call, a suggested agenda (open gaps first), the objections you're likely to hit, and an opener. Built from your history — sharpened by AI when a key is set.</p>
+        <div id="pc-calendar" class="pc-calendar"></div>
         <div class="precall-form">
           <label class="mini-field"><span>Who are you meeting? (persona)</span><input id="pc-persona" placeholder="e.g. CFO — cares about ROI and risk" /></label>
           <label class="mini-field"><span>Account (optional)</span><input id="pc-account" placeholder="e.g. Northwind Logistics" /></label>
@@ -284,10 +285,11 @@
         </details>
 
         <details class="help-card">
-          <summary>📋 Pre-call brief</summary>
+          <summary>📋 Pre-call brief &amp; 📅 Calendar</summary>
           <div class="help-body">
             <p>Open <b>Pre-call</b> before you dial, type who you're meeting (and optionally the account), and hit <b>Generate brief</b>. You get a one-screen prep: a suggested <b>opening line</b>, a <b>recap of your last call</b> with that contact (coverage, what's still open, objections, competitors named, notes), a <b>suggested agenda</b> that puts open qualification gaps first, and the <b>objections you're most likely to hit</b> based on your history.</p>
             <p>It's built entirely from your saved calls, so it works offline. With an Anthropic or OpenAI key set, one AI pass sharpens the agenda, opener, and likely objections (look for the <b>✨ AI-sharpened</b> badge).</p>
+            <p><b>From your calendar:</b> connect Google (Settings) and your <b>upcoming meetings</b> appear at the top of Pre-call — click one and its title + attendees prefill the account/persona and generate the brief. One Google sign-in grants both Drive and Calendar; if you connected Drive before this feature existed, reconnect once to grant calendar access.</p>
           </div>
         </details>
 
