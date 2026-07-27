@@ -11,6 +11,7 @@ import { TranscriptBus } from "../engine/transcript-bus.js";
 import { QualificationEngine } from "../engine/qualification.js";
 import { loadConfig, type ConfigOverride, type EngineConfig } from "../engine/config.js";
 import { AnthropicLlmClient } from "../engine/anthropic-client.js";
+import { OpenAiLlmClient } from "../engine/openai-client.js";
 import type { LlmClient } from "../engine/llm.js";
 import type { JsonlLogger } from "../engine/logger.js";
 import type { GuidanceEvent, SlotId, Speaker, TranscriptEvent } from "../engine/types.js";
@@ -61,6 +62,8 @@ export type ServerToClient =
 export interface SessionEnv {
   deepgramApiKey?: string;
   anthropicApiKey?: string;
+  openaiApiKey?: string;
+  aiProvider?: string;
   deepgramModel?: string;
   logger?: JsonlLogger;
   settings: Settings;
@@ -198,13 +201,11 @@ export class Session {
       this.#send({ type: "status", text: "Missing DEEPGRAM_API_KEY — add it to .env for live mode.", level: "error" });
       return;
     }
-    const llm: LlmClient = this.#env.anthropicApiKey
-      ? new AnthropicLlmClient({ apiKey: this.#env.anthropicApiKey })
-      : new OfflineLlmClient();
-    if (!this.#env.anthropicApiKey) {
+    const llm = this.#chooseLlm();
+    if (llm instanceof OfflineLlmClient) {
       this.#send({
         type: "status",
-        text: "No ANTHROPIC_API_KEY — running live transcription with the offline suggestion engine.",
+        text: "No Anthropic/OpenAI key — live transcription with the offline suggestion engine.",
         level: "warn",
       });
     }
@@ -215,6 +216,18 @@ export class Session {
     this.#dgRep = this.#makeDeepgram("rep");
     this.#dgProspect = this.#makeDeepgram("prospect");
     this.#send({ type: "status", text: "Listening — share your meeting tab (with audio) and start talking.", level: "info" });
+  }
+
+  /** Pick the LLM client for live suggestions based on provider + available keys. */
+  #chooseLlm(): LlmClient {
+    const anthropic = this.#env.anthropicApiKey;
+    const openai = this.#env.openaiApiKey;
+    const provider = this.#env.aiProvider || (anthropic ? "anthropic" : openai ? "openai" : "none");
+    if (provider === "openai" && openai) return new OpenAiLlmClient({ apiKey: openai });
+    if (provider === "anthropic" && anthropic) return new AnthropicLlmClient({ apiKey: anthropic });
+    if (anthropic) return new AnthropicLlmClient({ apiKey: anthropic });
+    if (openai) return new OpenAiLlmClient({ apiKey: openai });
+    return new OfflineLlmClient();
   }
 
   #makeDeepgram(speaker: Speaker): DeepgramLive {

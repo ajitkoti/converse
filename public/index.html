@@ -116,7 +116,9 @@
           <label class="field"><span>Suggestion cooldown (s)</span><input id="set-cooldown" type="number" min="0" /></label>
           <label class="field"><span>Google Drive folder id</span><input id="set-drive-folder" placeholder="(blank = auto 'Converse Sessions')" /></label>
           <label class="field"><span>Deepgram API key <em id="dg-set" class="key-set"></em></span><input id="set-deepgram-key" type="password" placeholder="for live transcription" autocomplete="off" /></label>
-          <label class="field"><span>Anthropic API key <em id="an-set" class="key-set"></em></span><input id="set-anthropic-key" type="password" placeholder="optional — sharper live suggestions" autocomplete="off" /></label>
+          <label class="field"><span>AI provider</span><select id="set-provider"><option value="anthropic">Anthropic (Claude)</option><option value="openai">OpenAI (GPT)</option></select></label>
+          <label class="field"><span>Anthropic API key <em id="an-set" class="key-set"></em></span><input id="set-anthropic-key" type="password" placeholder="for Claude suggestions" autocomplete="off" /></label>
+          <label class="field"><span>OpenAI API key <em id="oa-set" class="key-set"></em></span><input id="set-openai-key" type="password" placeholder="for GPT suggestions" autocomplete="off" /></label>
           <label class="field"><span>Framework (live calls)</span><select id="set-framework"></select></label>
           <label class="field"><span>Slack webhook URL</span><input id="set-slack" placeholder="https://hooks.slack.com/services/… (optional)" autocomplete="off" /></label>
           <label class="check"><input id="set-autosave" type="checkbox" /> <span>Auto-save every session locally</span></label>
@@ -137,6 +139,14 @@
         <div class="row-actions">
           <button id="settings-save" class="btn">Save settings</button>
           <span id="settings-saved" class="saved-note"></span>
+        </div>
+
+        <div class="drive-connect-row">
+          <div class="dz-head" style="color:var(--muted)">Google Drive</div>
+          <div class="row-actions">
+            <button id="drive-connect" class="btn">Connect Google Drive</button>
+            <span id="drive-connect-note" class="meta-dim"></span>
+          </div>
         </div>
       </section>
 
@@ -234,8 +244,9 @@
           <summary>🎛️ Persona, models &amp; custom prompts</summary>
           <div class="help-body">
             <ul>
+              <li><b>AI provider</b> — use <b>Anthropic (Claude)</b> or <b>OpenAI (GPT)</b>. Paste the matching API key and pick the provider; the model names auto-adjust if you don't set your own.</li>
               <li><b>Persona</b> — set who you're selling to (e.g. “CFO — ROI &amp; risk”) so questions match what they care about.</li>
-              <li><b>Models &amp; cooldown</b> — choose the Claude model and how often nudges may fire.</li>
+              <li><b>Models &amp; cooldown</b> — choose the model and how often nudges may fire.</li>
               <li><b>Custom prompts</b> — override the classifier and question prompts entirely (blank = built-in; the default is shown as a placeholder to copy).</li>
             </ul>
           </div>
@@ -264,7 +275,8 @@
         <details class="help-card">
           <summary>💾 Google Drive &amp; Slack setup</summary>
           <div class="help-body">
-            <p><b>Drive:</b> create an OAuth client (Desktop app) in Google Cloud, set <code>GOOGLE_OAUTH_CLIENT</code> in <code>.env</code>, run <code>npm run connect-drive</code> once.</p>
+            <p><b>Drive (sign in from the app):</b> in Google Cloud create an OAuth client (Web application or Desktop app) and add <code>http://localhost:5173/oauth2callback</code> as an authorized redirect URI. Point <code>GOOGLE_OAUTH_CLIENT</code> in <code>.env</code> at the downloaded JSON, then click <b>Connect Google Drive</b> in Settings — you'll sign in with Google in your browser, no terminal needed. (You can still use <code>npm run connect-drive</code> if you prefer.)</p>
+            <p>Google requires that one-time OAuth client — there's no way around it — but after that it's a single click.</p>
             <p><b>Slack:</b> create an incoming webhook and paste its URL into <b>Settings → Slack webhook URL</b>. Then use <b>Slack</b> on the summary.</p>
           </div>
         </details>

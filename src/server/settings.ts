@@ -28,6 +28,9 @@ export interface UserSettings {
   /** API keys entered in-app (used in packaged builds so no file editing is needed) */
   deepgramApiKey?: string;
   anthropicApiKey?: string;
+  openaiApiKey?: string;
+  /** which LLM provider to use for live suggestions: anthropic | openai */
+  aiProvider?: string;
   /** qualification framework for live calls: meddpicc | bant | spiced */
   framework?: string;
   /** Slack incoming-webhook URL for post-call export */

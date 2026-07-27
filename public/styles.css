@@ -416,7 +416,9 @@ input:focus, textarea:focus { outline: none; border-color: rgba(99,102,241,0.6);
 .obj-row { background: rgba(251,146,60,0.08); border: 1px solid rgba(251,146,60,0.22); border-radius: 10px; padding: 9px 13px; margin-bottom: 8px; font-size: 13.5px; }
 .obj-row .when { color: #fdba74; font-size: 11px; margin-right: 8px; font-variant-numeric: tabular-nums; }
 
-select#set-framework { background: rgba(255,255,255,0.04); border: 1px solid var(--stroke); border-radius: 10px; color: var(--text); padding: 9px 12px; font-size: 14px; font-family: inherit; width: 100%; }
+.drive-connect-row { margin-top: 22px; padding-top: 16px; border-top: 1px solid var(--stroke); }
+.drive-connect-row code { background: rgba(255,255,255,0.08); padding: 1px 5px; border-radius: 5px; font-size: 12px; }
+select#set-provider, select#set-framework { background: rgba(255,255,255,0.04); border: 1px solid var(--stroke); border-radius: 10px; color: var(--text); padding: 9px 12px; font-size: 14px; font-family: inherit; width: 100%; }
 
 @media (max-width: 780px) {
   .stat-tiles { grid-template-columns: repeat(2, 1fr); }

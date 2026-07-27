@@ -45,6 +45,7 @@ async function boot() {
     env: {
       DEEPGRAM_API_KEY: process.env.DEEPGRAM_API_KEY,
       ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
+      OPENAI_API_KEY: process.env.OPENAI_API_KEY,
       DEEPGRAM_MODEL: process.env.DEEPGRAM_MODEL,
       GDRIVE_FOLDER_ID: process.env.GDRIVE_FOLDER_ID,
     },

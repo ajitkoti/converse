@@ -57,6 +57,24 @@ async function init() {
   renderDrivePill();
   fillSettings();
   await loadHistory(true);
+  if (new URLSearchParams(location.search).get("drive") === "connected") {
+    toast("✅ Google Drive connected.", "info");
+    history.replaceState({}, "", location.pathname);
+    showView("settings");
+  }
+}
+function renderDriveConnect() {
+  const d = state.drive || {};
+  const btn = $("drive-connect"); const note = $("drive-connect-note");
+  if (!btn) return;
+  if (d.connected) { btn.style.display = "none"; note.textContent = `Connected (${d.method}).`; }
+  else if (d.canWebConnect) { btn.style.display = ""; btn.disabled = false; note.textContent = "Sign in to enable Drive export."; }
+  else { btn.style.display = ""; btn.disabled = true; note.innerHTML = "Set <code>GOOGLE_OAUTH_CLIENT</code> in .env first (see Help → Drive setup)."; }
+}
+async function connectDrive() {
+  const r = await api.get("/api/drive/connect");
+  if (r.url) location.assign(r.url);
+  else toast(r.error || "Could not start Drive sign-in.", "warn");
 }
 function renderDrivePill() {
   const pill = $("drive-pill"); const d = state.drive || {};
@@ -513,9 +531,12 @@ function fillSettings() {
   $("set-drive-folder").value = s.driveFolderId || "";
   $("set-autosave").checked = s.autoSave !== false;
   $("set-usecontext").checked = s.useContext !== false;
-  $("set-deepgram-key").value = ""; $("set-anthropic-key").value = "";
+  $("set-deepgram-key").value = ""; $("set-anthropic-key").value = ""; $("set-openai-key").value = "";
   $("dg-set").textContent = s.hasDeepgramKey ? "· saved ✓" : "";
   $("an-set").textContent = s.hasAnthropicKey ? "· saved ✓" : "";
+  $("oa-set").textContent = s.hasOpenaiKey ? "· saved ✓" : "";
+  $("set-provider").value = s.aiProvider || "anthropic";
+  renderDriveConnect();
   $("set-classifier-prompt").value = s.classifierPrompt || "";
   $("set-question-prompt").value = s.questionPrompt || "";
   $("set-classifier-prompt").placeholder = state.defaults.classifierPrompt || "";
@@ -539,9 +560,11 @@ async function saveSettings() {
     slackWebhookUrl: $("set-slack").value.trim() || undefined,
     config: { models: { classifier: $("set-model-classifier").value.trim() || undefined, questionGen: $("set-model-question").value.trim() || undefined }, suggestion: $("set-cooldown").value ? { cooldownSeconds: Number($("set-cooldown").value) } : undefined },
   };
-  const dg = $("set-deepgram-key").value.trim(); const an = $("set-anthropic-key").value.trim();
+  const dg = $("set-deepgram-key").value.trim(); const an = $("set-anthropic-key").value.trim(); const oa = $("set-openai-key").value.trim();
   if (dg) patch.deepgramApiKey = dg;
   if (an) patch.anthropicApiKey = an;
+  if (oa) patch.openaiApiKey = oa;
+  patch.aiProvider = $("set-provider").value;
   if (!patch.config.models.classifier && !patch.config.models.questionGen) delete patch.config.models;
   if (!patch.config.suggestion) delete patch.config.suggestion;
   if (!patch.config.models && !patch.config.suggestion) delete patch.config;
@@ -586,6 +609,7 @@ $("export-slack").addEventListener("click", () => { send({ type: "export-slack" 
 $("obj-dismiss").addEventListener("click", () => $("obj-card").classList.add("hidden"));
 $("export-drive").addEventListener("click", () => { send({ type: "export-drive" }); toast("Uploading to Google Drive…", "info"); });
 $("settings-save").addEventListener("click", saveSettings);
+$("drive-connect").addEventListener("click", connectDrive);
 for (const b of document.querySelectorAll("[data-reset]"))
   b.addEventListener("click", () => { $(b.dataset.reset === "classifier" ? "set-classifier-prompt" : "set-question-prompt").value = ""; });
 $("ctx-save").addEventListener("click", async () => {
