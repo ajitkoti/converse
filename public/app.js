@@ -732,6 +732,33 @@ function initPrecall() {
     $("pc-persona").value = (state.settings && state.settings.persona) || "";
     $("pc-generate").addEventListener("click", generateBrief);
   }
+  loadPrecallCalendar();
+}
+async function loadPrecallCalendar() {
+  const el = $("pc-calendar");
+  el.innerHTML = "";
+  let data;
+  try { data = await api.get("/api/calendar/events?range=upcoming"); } catch { return; }
+  if (!data.connected) { el.innerHTML = `<div class="pc-cal-hint">Connect Google (Settings) to prep straight from your calendar.</div>`; return; }
+  if (data.error) { el.innerHTML = `<div class="pc-cal-hint">${escapeHtml(data.error)}</div>`; return; }
+  if (!data.events.length) { el.innerHTML = `<div class="pc-cal-hint">No upcoming meetings in the next two weeks.</div>`; return; }
+  el.innerHTML = `<div class="pc-cal-head">📅 Upcoming meetings — click to prep</div>` +
+    `<div class="pc-cal-list">${data.events.map(calEventHtml).join("")}</div>`;
+  el.querySelectorAll(".pc-cal-item").forEach((item, i) => {
+    item.addEventListener("click", () => {
+      const ev = data.events[i];
+      const attendee = (ev.attendees && ev.attendees[0]) || "";
+      $("pc-account").value = ev.title || "";
+      if (attendee) $("pc-persona").value = attendee;
+      generateBrief();
+    });
+  });
+}
+function calEventHtml(ev) {
+  const when = ev.start ? new Date(ev.start).toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : "";
+  const who = (ev.attendees || []).slice(0, 3).join(", ");
+  return `<button class="pc-cal-item"><div class="pc-cal-title">${escapeHtml(ev.title)}</div>
+    <div class="pc-cal-meta">${escapeHtml(when)}${who ? " · " + escapeHtml(who) : ""}</div></button>`;
 }
 async function generateBrief() {
   const persona = $("pc-persona").value.trim();

@@ -18,6 +18,7 @@ import { ContextLibrary } from "./context.js";
 import { SessionStore } from "./store.js";
 import { DriveExporter, buildOAuthClient, oauthClientConfigured, DRIVE_SCOPES, TOKEN_PATH } from "./gdrive.js";
 import { DriveDb } from "./drive-db.js";
+import { CalendarClient, CALENDAR_SCOPES } from "./gcal.js";
 import { analyzeCallLLM, analyzeCallHeuristic } from "./analysis.js";
 import { deepgramPrerecorded } from "./transcribe.js";
 import { frameworkList } from "./frameworks.js";
@@ -83,6 +84,7 @@ export async function startServer(opts: ServerOptions): Promise<RunningServer> {
   const store = new SessionStore(opts.dataDir);
   const drive = new DriveExporter();
   const driveDb = new DriveDb(drive, { parentId: settings.get().driveFolderId || env.GDRIVE_FOLDER_ID });
+  const calendar = new CalendarClient();
 
   /** Re-analyze a stored record: LLM when a key is set, else the heuristic. */
   async function analyzeRecord(record: import("./types.js").SessionRecord) {
@@ -131,6 +133,7 @@ export async function startServer(opts: ServerOptions): Promise<RunningServer> {
           settings: publicSettings(settings.get()),
           context: context.list(),
           drive: { ...drive.status(), canWebConnect: oauthClientConfigured() },
+          calendar: calendar.status(),
           frameworks: frameworkList(),
           defaults: { classifierPrompt: CLASSIFIER_SYSTEM, questionPrompt: QUESTION_SYSTEM },
         });
@@ -144,7 +147,7 @@ export async function startServer(opts: ServerOptions): Promise<RunningServer> {
         }
         const redirect = callbackUrl(req);
         const oauth = buildOAuthClient(process.env.GOOGLE_OAUTH_CLIENT!, redirect);
-        const url = oauth.generateAuthUrl({ access_type: "offline", scope: DRIVE_SCOPES, prompt: "consent" });
+        const url = oauth.generateAuthUrl({ access_type: "offline", scope: [...DRIVE_SCOPES, ...CALENDAR_SCOPES], prompt: "consent" });
         return json(200, { url });
       }
       if (req.method === "GET" && p === "/oauth2callback") {
@@ -158,6 +161,7 @@ export async function startServer(opts: ServerOptions): Promise<RunningServer> {
           const { tokens } = await oauth.getToken(code);
           fs.writeFileSync(TOKEN_PATH, JSON.stringify(tokens, null, 2));
           drive.reload();
+          calendar.reload();
           res.writeHead(302, { Location: "/?drive=connected" }).end();
         } catch (err) {
           res.writeHead(500, { "Content-Type": "text/html" }).end(`Drive connect failed: ${String(err)}`);
@@ -182,6 +186,16 @@ export async function startServer(opts: ServerOptions): Promise<RunningServer> {
           return json(200, await enhancePreCallBriefLLM(llm, brief, model));
         } catch {
           return json(200, brief); // fall back to the heuristic brief on model error
+        }
+      }
+      // ---- Google Calendar ----
+      if (req.method === "GET" && p === "/api/calendar/events") {
+        if (!calendar.status().connected) return json(200, { connected: false, events: [] });
+        const range = url.searchParams.get("range") === "recent" ? "recent" : "upcoming";
+        try {
+          return json(200, { connected: true, events: await calendar.listEvents(range) });
+        } catch (err) {
+          return json(200, { connected: true, events: [], error: "Calendar not authorized — reconnect Google (Settings) to grant calendar access." });
         }
       }
       if (req.method === "GET" && p === "/api/history") return json(200, { sessions: store.list() });

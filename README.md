@@ -73,6 +73,9 @@ shows up under **History**.
   recap (coverage, open gaps, objections, competitors named, notes), a suggested
   agenda (open gaps first), and the objections you're most likely to hit. Built
   from your history; AI-sharpened when a key is set.
+- **Google Calendar** — connect Google and your upcoming meetings show up on the
+  Pre-call screen; click one to prep straight from it (its title + attendees
+  prefill the account/persona). One Google sign-in grants both Drive and Calendar.
 - **AI deal debrief** — after each call, one LLM pass produces what went well /
   didn't, how to improve, missed opportunities, red flags, budget + key decision
   points, sentiment, and a drafted follow-up email. Falls back to a deterministic
