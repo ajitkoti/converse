@@ -17,6 +17,8 @@ import { Settings, type UserSettings } from "./settings.js";
 import { ContextLibrary } from "./context.js";
 import { SessionStore } from "./store.js";
 import { DriveExporter, buildOAuthClient, oauthClientConfigured, DRIVE_SCOPES, TOKEN_PATH } from "./gdrive.js";
+import { DriveDb } from "./drive-db.js";
+import { analyzeCallLLM, analyzeCallHeuristic } from "./analysis.js";
 import { frameworkList } from "./frameworks.js";
 import { buildSummaryMarkdown, buildTranscriptMarkdown } from "./summary.js";
 import { buildPreCallBrief, enhancePreCallBriefLLM } from "./precall.js";
@@ -79,6 +81,23 @@ export async function startServer(opts: ServerOptions): Promise<RunningServer> {
   const context = new ContextLibrary(opts.contextDir);
   const store = new SessionStore(opts.dataDir);
   const drive = new DriveExporter();
+  const driveDb = new DriveDb(drive, { parentId: settings.get().driveFolderId || env.GDRIVE_FOLDER_ID });
+
+  /** Re-analyze a stored record: LLM when a key is set, else the heuristic. */
+  async function analyzeRecord(record: import("./types.js").SessionRecord) {
+    const s = settings.get();
+    const llm = chooseLlm({
+      anthropicApiKey: s.anthropicApiKey || env.ANTHROPIC_API_KEY,
+      openaiApiKey: s.openaiApiKey || env.OPENAI_API_KEY,
+      aiProvider: s.aiProvider,
+    });
+    if (llm instanceof OfflineLlmClient) return analyzeCallHeuristic(record);
+    try {
+      return await analyzeCallLLM(llm, record, loadConfig(settings.configOverride()).models.questionGen);
+    } catch {
+      return analyzeCallHeuristic(record);
+    }
+  }
 
   const server = http.createServer(async (req, res) => {
     const url = new URL(req.url ?? "/", "http://localhost");
@@ -167,6 +186,29 @@ export async function startServer(opts: ServerOptions): Promise<RunningServer> {
       if (req.method === "GET" && p === "/api/history") return json(200, { sessions: store.list() });
       if (req.method === "GET" && p === "/api/analytics") return json(200, store.analytics());
       if (req.method === "GET" && p === "/api/scorecard") return json(200, buildScorecard(store));
+
+      // ---- Google Drive as the call database ----
+      if (req.method === "GET" && p === "/api/drive/calls") {
+        if (!driveDb.connected()) return json(200, { connected: false, calls: [] });
+        try {
+          return json(200, { connected: true, calls: await driveDb.listCalls() });
+        } catch (err) {
+          return json(200, { connected: true, calls: [], error: String(err) });
+        }
+      }
+      if (req.method === "GET" && p === "/api/drive/analysis") {
+        if (!driveDb.connected()) return json(400, { error: "Drive not connected" });
+        const id = url.searchParams.get("id") ?? "";
+        const analysis = await driveDb.getAnalysis(id);
+        const record = analysis ? null : await driveDb.getRecord(id);
+        return json(200, { id, analysis, hasRecord: Boolean(analysis || record) });
+      }
+      if (req.method === "POST" && p === "/api/drive/refresh") {
+        if (!driveDb.connected()) return json(400, { error: "Drive not connected" });
+        const { id } = await readJson<{ id: string }>(req);
+        const analysis = await driveDb.refreshAnalysis(String(id), analyzeRecord);
+        return analysis ? json(200, { id, analysis }) : json(404, { error: "Call not found in Drive" });
+      }
       if (req.method === "POST" && p === "/api/session/delete") {
         const { id } = await readJson<{ id: string }>(req);
         return json(200, { deleted: store.delete(String(id)) });
@@ -248,6 +290,7 @@ export async function startServer(opts: ServerOptions): Promise<RunningServer> {
       context,
       store,
       drive,
+      driveDb,
     });
     ws.on("message", (data: Buffer, isBinary: boolean) => {
       if (isBinary) return void session.onAudio(data);

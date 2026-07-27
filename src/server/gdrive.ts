@@ -32,6 +32,30 @@ export interface DriveStatus {
   reason?: string;
 }
 
+export interface DriveEntry {
+  id: string;
+  name: string;
+  modifiedTime?: string;
+}
+
+/**
+ * The subset of Drive operations the higher-level `DriveDb` needs. DriveExporter
+ * implements it against the real API; tests inject an in-memory fake so the
+ * database logic can be verified without Google credentials.
+ */
+export interface DriveClient {
+  status(): DriveStatus;
+  ensureFolder(name: string, parentId?: string): Promise<string>;
+  /** find a file by exact name within a folder */
+  findFile(name: string, folderId: string): Promise<DriveEntry | null>;
+  /** create the file, or overwrite it in place if one with that name already exists */
+  putFile(file: DriveFileInput, folderId: string): Promise<{ id: string; link: string }>;
+  /** read a file's contents as a string */
+  readFile(fileId: string): Promise<string>;
+  /** list files directly inside a folder */
+  listFolder(folderId: string): Promise<DriveEntry[]>;
+}
+
 export function buildOAuthClient(clientJsonPath: string, redirectOverride?: string): OAuth2Client {
   const raw = JSON.parse(fs.readFileSync(clientJsonPath, "utf8"));
   const creds = raw.installed ?? raw.web;
@@ -46,7 +70,7 @@ export function oauthClientConfigured(): boolean {
   return !!p && fs.existsSync(p);
 }
 
-export class DriveExporter {
+export class DriveExporter implements DriveClient {
   #drive: drive_v3.Drive | null = null;
   #status: DriveStatus = { connected: false, method: "none" };
 
@@ -112,6 +136,59 @@ export class DriveExporter {
       fields: "id",
     });
     return made.data.id!;
+  }
+
+  /** Find a file by exact name within a folder (non-trashed). */
+  async findFile(name: string, folderId: string): Promise<DriveEntry | null> {
+    if (!this.#drive) throw new Error("Drive not connected");
+    const q = [
+      `name = '${name.replace(/'/g, "\\'")}'`,
+      `'${folderId}' in parents`,
+      "trashed = false",
+    ].join(" and ");
+    const res = await this.#drive.files.list({ q, fields: "files(id, name, modifiedTime)", pageSize: 1 });
+    const hit = res.data.files?.[0];
+    return hit?.id ? { id: hit.id, name: hit.name ?? name, modifiedTime: hit.modifiedTime ?? undefined } : null;
+  }
+
+  /** Create a file, or overwrite it in place if one with the same name exists in the folder. */
+  async putFile(file: DriveFileInput, folderId: string): Promise<{ id: string; link: string }> {
+    if (!this.#drive) throw new Error("Drive not connected");
+    const existing = await this.findFile(file.name, folderId);
+    if (existing) {
+      const res = await this.#drive.files.update({
+        fileId: existing.id,
+        media: { mimeType: file.mimeType, body: file.content },
+        fields: "id, webViewLink",
+      });
+      return { id: res.data.id!, link: res.data.webViewLink ?? "" };
+    }
+    const res = await this.#drive.files.create({
+      requestBody: { name: file.name, parents: [folderId] },
+      media: { mimeType: file.mimeType, body: file.content },
+      fields: "id, webViewLink",
+    });
+    return { id: res.data.id!, link: res.data.webViewLink ?? "" };
+  }
+
+  /** Read a file's contents as a string. */
+  async readFile(fileId: string): Promise<string> {
+    if (!this.#drive) throw new Error("Drive not connected");
+    const res = await this.#drive.files.get({ fileId, alt: "media" }, { responseType: "text" });
+    return typeof res.data === "string" ? res.data : JSON.stringify(res.data);
+  }
+
+  /** List files directly inside a folder (non-trashed), newest first. */
+  async listFolder(folderId: string): Promise<DriveEntry[]> {
+    if (!this.#drive) throw new Error("Drive not connected");
+    const q = `'${folderId}' in parents and trashed = false`;
+    const res = await this.#drive.files.list({
+      q,
+      fields: "files(id, name, modifiedTime)",
+      orderBy: "modifiedTime desc",
+      pageSize: 1000,
+    });
+    return (res.data.files ?? []).map((f) => ({ id: f.id!, name: f.name ?? "", modifiedTime: f.modifiedTime ?? undefined }));
   }
 
   /** Upload files into a folder. Returns [{name, id, link}]. */

@@ -428,6 +428,20 @@ input:focus, textarea:focus { outline: none; border-color: rgba(99,102,241,0.6);
 .btn.danger { background: rgba(255,80,80,0.12); color: #ff9b9b; border-color: rgba(255,80,80,0.32); }
 .btn.danger:hover { background: rgba(255,80,80,0.22); }
 
+/* Cloud (Drive database) */
+.cloud-status { margin-bottom: 12px; }
+.cloud-disconnected { background: rgba(251,191,36,0.08); border: 1px solid rgba(251,191,36,0.25); border-radius: 10px; padding: 12px 14px; font-size: 13.5px; color: var(--muted); }
+.cloud-list { display: flex; flex-direction: column; gap: 10px; }
+.cloud-card { background: var(--panel); border: 1px solid var(--stroke); border-radius: 12px; padding: 12px 15px; display: grid; grid-template-columns: 1fr auto; gap: 8px 12px; align-items: center; }
+.cloud-id { font-size: 13.5px; font-weight: 600; font-family: ui-monospace, monospace; }
+.cloud-badges { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
+.cloud-badge { font-size: 11px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--stroke); }
+.cloud-badge.on { color: var(--green); border-color: rgba(52,211,153,0.35); background: rgba(52,211,153,0.08); }
+.cloud-badge.off { color: var(--dim); }
+.cloud-actions { display: flex; gap: 8px; }
+.cloud-analysis { grid-column: 1 / -1; }
+.cloud-analysis:not(.hidden) { margin-top: 6px; }
+
 /* Scorecard & skill index */
 .sc-team { background: var(--panel); border: 1px solid var(--stroke); border-radius: 12px; padding: 10px 14px; margin-bottom: 14px; font-size: 13.5px; color: var(--muted); }
 .sc-team b { color: var(--text); }
