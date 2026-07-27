@@ -111,6 +111,18 @@ try {
   check("dashboard has an LLM-calls tile", (await page.textContent("#stat-tiles"))?.includes("LLM calls"));
   await page.screenshot({ path: path.join(SHOTS, "4-dashboard.png") });
 
+  // 8b. Pre-call brief (uses the just-recorded demo call as history)
+  await page.click('.nav-link[data-view="precall"]');
+  await page.waitForSelector("#view-precall:not(.hidden)");
+  await page.fill("#pc-persona", "CFO — cares about ROI");
+  await page.click("#pc-generate");
+  await page.waitForFunction(() => document.querySelector("#precall-result .pc-agenda"), null, { timeout: 15000 });
+  check("pre-call brief generates an agenda", (await page.locator("#precall-result .pc-agenda li").count()) >= 1);
+  check("pre-call brief shows an opening line", (await page.locator("#precall-result .pc-opener .pc-quote").count()) === 1);
+  check("pre-call brief lists likely objections", (await page.locator("#precall-result .pc-obj").count()) >= 1);
+  check("pre-call brief recaps the last call", (await page.textContent("#precall-result"))?.includes("Last call recap"));
+  await page.screenshot({ path: path.join(SHOTS, "5-precall.png") });
+
   // 9. History + search + reopen
   await page.click('.nav-link[data-view="history"]');
   await page.waitForSelector("#history-list .rec-card");

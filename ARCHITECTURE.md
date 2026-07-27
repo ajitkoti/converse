@@ -311,6 +311,12 @@ the engine, none of them imported by it:
   re-saved into the record, and rendered into the summary Markdown + exports.
   Real (non-offline) LLM calls are counted per session (`perf.llmCalls`) and
   aggregated on the dashboard.
+- **Pre-call brief** (`precall.ts`, `llm-factory.ts`): `GET /api/precall-brief`
+  builds a briefing from saved history + the active framework — last-call recap,
+  agenda (open gaps first), likely objections (tallied across history), opener.
+  Offline-first; when a provider key is set, `enhancePreCallBriefLLM` tightens it
+  in one pass. `llm-factory.ts` centralizes provider selection (shared with the
+  live session).
 - **In-call intelligence** (`intel.ts`, `objection-tree.ts`, `objections.ts`):
   deterministic keyword cues on PROSPECT speech drive three proactive surfaces —
   objection detection (with a multi-step `objectionTree` response flow), competitor

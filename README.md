@@ -55,6 +55,10 @@ shows up under **History**.
   bridging-question card at natural pauses, elapsed timer, live caption.
 - **Post-call summary + history** — coverage with evidence quotes and the nudges
   given; browse and reopen past calls.
+- **Pre-call brief** — before you dial, a one-screen prep: opening line, last-call
+  recap (coverage, open gaps, objections, competitors named, notes), a suggested
+  agenda (open gaps first), and the objections you're most likely to hit. Built
+  from your history; AI-sharpened when a key is set.
 - **AI deal debrief** — after each call, one LLM pass produces what went well /
   didn't, how to improve, missed opportunities, red flags, budget + key decision
   points, sentiment, and a drafted follow-up email. Falls back to a deterministic
