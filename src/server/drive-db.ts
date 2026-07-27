@@ -16,6 +16,7 @@
 
 import type { DriveClient } from "./gdrive.js";
 import { buildSummaryMarkdown, buildTranscriptMarkdown } from "./summary.js";
+import { recordFromTranscript, type PrerecordedResult } from "./transcribe.js";
 import type { CallAnalysis, SessionRecord } from "./types.js";
 
 const TYPE_FOLDERS = {
@@ -101,18 +102,19 @@ export class DriveDb {
     const hasAnalysis = idsWith(analyses, ".analysis.json");
     const hasRecording = idsWith(recordings, ".webm");
     const hasTranscript = idsWith(transcripts, ".transcript.md");
-    return sessions
-      .filter((e) => e.name.endsWith(".json"))
-      .map((e) => {
-        const id = e.name.slice(0, -".json".length);
-        return {
-          id,
-          modifiedTime: e.modifiedTime,
-          hasAnalysis: hasAnalysis.has(id),
-          hasRecording: hasRecording.has(id),
-          hasTranscript: hasTranscript.has(id),
-        };
-      });
+    // Include recording-only ids (audio dropped into Drive with no session row).
+    const sessionIds = new Set(sessions.filter((e) => e.name.endsWith(".json")).map((e) => e.name.slice(0, -".json".length)));
+    const modById = new Map<string, string | undefined>();
+    for (const e of sessions) if (e.name.endsWith(".json")) modById.set(e.name.slice(0, -".json".length), e.modifiedTime);
+    for (const e of recordings) if (e.name.endsWith(".webm")) { const id = e.name.slice(0, -".webm".length); if (!modById.has(id)) modById.set(id, e.modifiedTime); }
+    const allIds = new Set<string>([...sessionIds, ...hasRecording]);
+    return [...allIds].map((id) => ({
+      id,
+      modifiedTime: modById.get(id),
+      hasAnalysis: hasAnalysis.has(id),
+      hasRecording: hasRecording.has(id),
+      hasTranscript: hasTranscript.has(id) || sessionIds.has(id),
+    }));
   }
 
   async #readJson<T>(folder: string, name: string): Promise<T | null> {
@@ -156,5 +158,42 @@ export class DriveDb {
     record.analysis = analysis;
     await this.storeCall(record); // rewrites analysis.json + re-renders summary.md
     return analysis;
+  }
+
+  /** Download a call's raw recording bytes, or null if there's none. */
+  async getRecordingBytes(id: string): Promise<Buffer | null> {
+    const t = await this.#tree();
+    const hit = await this.#client.findFile(`${id}.webm`, t.recordings);
+    return hit ? this.#client.readFileBinary(hit.id) : null;
+  }
+
+  /**
+   * Analyze a call in Drive, transcript-if-present-else-transcribe:
+   *  - if a stored record exists → analyze over it (refresh);
+   *  - else if a recording exists → transcribe it, synthesize a record, store
+   *    it, then analyze.
+   * `transcribe` and `analyze` are injected. Returns null if nothing to work on.
+   */
+  async analyzeRecording(
+    id: string,
+    deps: {
+      transcribe: (audio: Buffer) => Promise<PrerecordedResult>;
+      analyze: (r: SessionRecord) => Promise<CallAnalysis> | CallAnalysis;
+      now: () => string;
+    },
+  ): Promise<{ analysis: CallAnalysis; transcribed: boolean } | null> {
+    let record = await this.getRecord(id);
+    let transcribed = false;
+    if (!record) {
+      const audio = await this.getRecordingBytes(id);
+      if (!audio) return null;
+      const { lines } = await deps.transcribe(audio);
+      record = recordFromTranscript(id, lines, deps.now());
+      transcribed = true;
+    }
+    const analysis = await deps.analyze(record);
+    record.analysis = analysis;
+    await this.storeCall(record); // writes transcript.md + session.json + analysis.json
+    return { analysis, transcribed };
   }
 }

@@ -52,6 +52,8 @@ export interface DriveClient {
   putFile(file: DriveFileInput, folderId: string): Promise<{ id: string; link: string }>;
   /** read a file's contents as a string */
   readFile(fileId: string): Promise<string>;
+  /** read a file's raw bytes (for binary files like recordings) */
+  readFileBinary(fileId: string): Promise<Buffer>;
   /** list files directly inside a folder */
   listFolder(folderId: string): Promise<DriveEntry[]>;
 }
@@ -176,6 +178,13 @@ export class DriveExporter implements DriveClient {
     if (!this.#drive) throw new Error("Drive not connected");
     const res = await this.#drive.files.get({ fileId, alt: "media" }, { responseType: "text" });
     return typeof res.data === "string" ? res.data : JSON.stringify(res.data);
+  }
+
+  /** Read a file's raw bytes (for binary files like recordings). */
+  async readFileBinary(fileId: string): Promise<Buffer> {
+    if (!this.#drive) throw new Error("Drive not connected");
+    const res = await this.#drive.files.get({ fileId, alt: "media" }, { responseType: "arraybuffer" });
+    return Buffer.from(res.data as ArrayBuffer);
   }
 
   /** List files directly inside a folder (non-trashed), newest first. */

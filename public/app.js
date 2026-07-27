@@ -641,7 +641,9 @@ function cloudRowHtml(c) {
       <div class="cloud-badges">${badge(c.hasRecording, "recording")}${badge(c.hasTranscript, "transcript")}${badge(c.hasAnalysis, "analysis")}</div></div>
     <div class="cloud-actions">
       <button class="btn ghost small" data-act="view">View analysis</button>
-      <button class="btn small" data-act="refresh">Refresh analysis</button>
+      ${c.hasRecording && !c.hasTranscript
+        ? `<button class="btn small" data-act="analyze">Transcribe &amp; analyze</button>`
+        : `<button class="btn small" data-act="refresh">Refresh analysis</button>`}
     </div>
     <div class="cloud-analysis hidden"></div></div>`;
 }
@@ -657,7 +659,8 @@ function bindCloudRow(row) {
       if (r.analysis) renderAnalysisInto(panel, r.analysis);
     } catch (err) { panel.innerHTML = `<div class="meta-dim">${escapeHtml(String(err))}</div>`; }
   });
-  row.querySelector('[data-act="refresh"]').addEventListener("click", async (e) => {
+  const refreshBtn = row.querySelector('[data-act="refresh"]');
+  if (refreshBtn) refreshBtn.addEventListener("click", async (e) => {
     const btn = e.currentTarget; btn.disabled = true; btn.textContent = "Refreshing…";
     try {
       const r = await api.post("/api/drive/refresh", { id });
@@ -665,10 +668,23 @@ function bindCloudRow(row) {
       panel.innerHTML = "";
       if (r.analysis) { renderAnalysisInto(panel, r.analysis); toast("Analysis refreshed and saved to Drive", "info"); }
       else toast(r.error || "Refresh failed", "warn");
-      const badges = row.querySelector(".cloud-badges");
-      if (badges && !badges.textContent.includes("✓ analysis")) loadCloud();
     } catch (err) { toast(String(err), "warn"); }
     finally { btn.disabled = false; btn.textContent = "Refresh analysis"; }
+  });
+  const analyzeBtn = row.querySelector('[data-act="analyze"]');
+  if (analyzeBtn) analyzeBtn.addEventListener("click", async (e) => {
+    const btn = e.currentTarget; btn.disabled = true; btn.textContent = "Transcribing…";
+    try {
+      const r = await api.post("/api/drive/analyze-recording", { id });
+      panel.classList.remove("hidden");
+      panel.innerHTML = "";
+      if (r.analysis) {
+        renderAnalysisInto(panel, r.analysis);
+        toast(r.transcribed ? "Transcribed the recording, analyzed, and saved to Drive" : "Analyzed and saved to Drive", "info");
+        loadCloud(); // now has a transcript + analysis
+      } else toast(r.error || "Could not analyze the recording", "warn");
+    } catch (err) { toast(String(err), "warn"); }
+    finally { btn.disabled = false; btn.textContent = "Transcribe & analyze"; }
   });
 }
 

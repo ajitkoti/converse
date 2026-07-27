@@ -345,6 +345,12 @@ the engine, none of them imported by it:
   credentials and carries no LLM dependency — the analyze step for refresh is
   injected. Finished calls auto-sync on end; `/api/drive/{calls,analysis,refresh}`
   browse, fetch, and re-run analyses back into Drive.
+- **Pre-recorded transcription** (`transcribe.ts`): for a Drive recording with no
+  transcript, `deepgramPrerecorded` transcribes the audio (Deepgram REST, diarize
+  + utterances; the response parser is a pure, tested function), then
+  `recordFromTranscript` synthesizes a minimal record and `DriveDb.analyzeRecording`
+  stores transcript + session + analysis. `/api/drive/analyze-recording` implements
+  transcript-if-present-else-transcribe; `listCalls` also surfaces recording-only ids.
 
 The engine stays pure: it never learns about files, Drive, HTTP, or settings —
 those are host concerns wired in through its small, optional dependency hooks.

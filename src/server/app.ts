@@ -19,6 +19,7 @@ import { SessionStore } from "./store.js";
 import { DriveExporter, buildOAuthClient, oauthClientConfigured, DRIVE_SCOPES, TOKEN_PATH } from "./gdrive.js";
 import { DriveDb } from "./drive-db.js";
 import { analyzeCallLLM, analyzeCallHeuristic } from "./analysis.js";
+import { deepgramPrerecorded } from "./transcribe.js";
 import { frameworkList } from "./frameworks.js";
 import { buildSummaryMarkdown, buildTranscriptMarkdown } from "./summary.js";
 import { buildPreCallBrief, enhancePreCallBriefLLM } from "./precall.js";
@@ -231,6 +232,24 @@ export async function startServer(opts: ServerOptions): Promise<RunningServer> {
         const { id } = await readJson<{ id: string }>(req);
         const analysis = await driveDb.refreshAnalysis(String(id), analyzeRecord);
         return analysis ? json(200, { id, analysis }) : json(404, { error: "Call not found in Drive" });
+      }
+      if (req.method === "POST" && p === "/api/drive/analyze-recording") {
+        if (!driveDb.connected()) return json(400, { error: "Drive not connected" });
+        const { id } = await readJson<{ id: string }>(req);
+        const dgKey = settings.get().deepgramApiKey || env.DEEPGRAM_API_KEY;
+        try {
+          const out = await driveDb.analyzeRecording(String(id), {
+            transcribe: async (audio) => {
+              if (!dgKey) throw new Error("A Deepgram API key is required to transcribe an audio-only recording.");
+              return deepgramPrerecorded(dgKey, audio, { model: env.DEEPGRAM_MODEL });
+            },
+            analyze: analyzeRecord,
+            now: () => new Date().toISOString(),
+          });
+          return out ? json(200, { id, ...out }) : json(404, { error: "No stored call or recording for that id" });
+        } catch (err) {
+          return json(400, { error: String(err instanceof Error ? err.message : err) });
+        }
       }
       if (req.method === "POST" && p === "/api/session/delete") {
         const { id } = await readJson<{ id: string }>(req);
