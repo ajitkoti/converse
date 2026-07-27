@@ -312,7 +312,18 @@ export class QualificationEngine extends EventEmitter {
     return best;
   }
 
-  async #runQuestionGen(slot: SlotDef, firedAtMs: number): Promise<void> {
+  /**
+   * Generate a bridging question for a chosen slot immediately (UI "Ask now").
+   * Single-flight; ignores overdue/cooldown gating on purpose.
+   */
+  askNow(slotId: SlotId): void {
+    if (this.#suggestionInFlight) return;
+    const slot = this.#slots.find((s) => s.id === slotId);
+    if (!slot) return;
+    this.#track(this.#runQuestionGen(slot, this.#latestTs, true));
+  }
+
+  async #runQuestionGen(slot: SlotDef, firedAtMs: number, manual = false): Promise<void> {
     this.#suggestionInFlight = true;
     const windowText = renderWindow(this.#recentWindow(this.#cfg.suggestion.windowSeconds));
     const { system, user, prefill } = buildQuestionPrompt(
@@ -372,7 +383,9 @@ export class QualificationEngine extends EventEmitter {
       return;
     }
 
-    const reason = `${slot.label} overdue (>${this.#cfg.budgets[slot.id]?.escalateBy}s), prospect paused`;
+    const reason = manual
+      ? `manual — asked for ${slot.label}`
+      : `${slot.label} overdue (>${this.#cfg.budgets[slot.id]?.escalateBy}s), prospect paused`;
     this.#log.log({
       event: "suggest",
       ts: firedAtMs,

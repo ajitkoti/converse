@@ -22,7 +22,19 @@ export function buildSummaryMarkdown(r: SessionRecord): string {
   lines.push(`- **Mode:** ${r.mode}${r.fixture ? ` (${r.fixture})` : ""}`);
   if (r.persona) lines.push(`- **Persona:** ${r.persona}`);
   lines.push(`- **Coverage:** ${covered} / ${r.slotDefs.length} slots covered`);
+  const talkTotal = (r.talk?.repMs ?? 0) + (r.talk?.prospectMs ?? 0);
+  if (talkTotal > 0) {
+    const repPct = Math.round(((r.talk?.repMs ?? 0) / talkTotal) * 100);
+    lines.push(`- **Talk ratio:** you ${repPct}% · prospect ${100 - repPct}%`);
+  }
   lines.push("");
+
+  if (r.notes && r.notes.trim()) {
+    lines.push(`## Notes`);
+    lines.push("");
+    lines.push(r.notes.trim());
+    lines.push("");
+  }
 
   lines.push(`## MEDDPICC coverage`);
   lines.push("");

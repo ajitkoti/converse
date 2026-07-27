@@ -33,6 +33,8 @@ export interface SessionRecord {
   slots: SlotStates;
   transcript: TranscriptLine[];
   suggestions: SuggestionRecord[];
+  notes?: string;
+  talk: { repMs: number; prospectMs: number };
 }
 
 /** Lightweight header for the history list. */
@@ -44,4 +46,17 @@ export interface SessionSummary {
   covered: number;
   total: number;
   suggestions: number;
+}
+
+/** Aggregate stats across all saved sessions, for the dashboard. */
+export interface Analytics {
+  totalCalls: number;
+  liveCalls: number;
+  avgCoveragePct: number;
+  totalSuggestions: number;
+  totalTalkMs: { repMs: number; prospectMs: number };
+  /** per-slot: how often it ended covered */
+  slotCoverage: Array<{ id: string; label: string; coveredPct: number }>;
+  /** recent calls oldest→newest for a trend line */
+  trend: Array<{ id: string; startedAt: string; coveragePct: number }>;
 }

@@ -101,6 +101,11 @@ export async function startServer(opts: ServerOptions): Promise<RunningServer> {
         });
       }
       if (req.method === "GET" && p === "/api/history") return json(200, { sessions: store.list() });
+      if (req.method === "GET" && p === "/api/analytics") return json(200, store.analytics());
+      if (req.method === "POST" && p === "/api/session/delete") {
+        const { id } = await readJson<{ id: string }>(req);
+        return json(200, { deleted: store.delete(String(id)) });
+      }
       if (req.method === "GET" && p === "/api/session") {
         const rec = store.read(url.searchParams.get("id") ?? "");
         return rec ? json(200, rec) : json(404, { error: "not found" });
@@ -184,6 +189,12 @@ export async function startServer(opts: ServerOptions): Promise<RunningServer> {
           break;
         case "snooze":
           if (typeof msg.slot === "string") session.snooze(msg.slot as SlotId);
+          break;
+        case "ask":
+          if (typeof msg.slot === "string") session.ask(msg.slot as SlotId);
+          break;
+        case "note":
+          if (typeof msg.text === "string") session.setNotes(msg.text);
           break;
         case "export-drive":
           void session.exportDrive();

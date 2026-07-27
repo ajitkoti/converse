@@ -78,10 +78,14 @@ under a minute. When it finishes you land on the **Summary** screen.
 ### Home & the top navigation
 
 - **Home** — start a demo or a live call; set a per-call persona; see recent calls.
-- **History** — every past call; click one to reopen its summary.
+- **Dashboard** — analytics across all your calls: total calls, average coverage,
+  a coverage-trend line, per-area cover rate, and overall talk ratio.
+- **History** — every past call; **search** it, click one to reopen its summary,
+  or delete it.
 - **Context** — your product docs that ground the copilot's questions.
 - **Settings** — keys, persona, models, prompts, and tuning.
-- The pill on the right shows whether **Google Drive** is connected.
+- The **theme toggle** (☾/☀) switches light/dark; the pill shows whether **Google
+  Drive** is connected.
 
 ### The in-call overlay
 
@@ -91,10 +95,16 @@ When a call is running, the screen switches to the overlay:
   - ⚪️ **grey** = not covered
   - 🟡 **amber** = partially covered
   - 🟢 **green** = covered
-  The **most overdue** area **pulses** so you know where to steer.
+  The **most overdue** area **pulses** so you know where to steer. **Click any dot**
+  to open its inspector — status, confidence, the prospect quote behind it, and an
+  **"Ask about this now"** button that generates a bridging question on demand.
+- **Coverage score** (top left, e.g. `3/8`) and a **talk-time meter** (top center)
+  showing your share of the conversation vs. the prospect's — live.
 - **Suggestion card** (bottom center) — appears at a pause when an area is
-  overdue. One question, phrased around what the prospect said. It auto-dismisses
-  after 25 seconds.
+  overdue, or instantly when you hit "Ask now." One question, phrased around what
+  the prospect said. Auto-dismisses after 25 seconds.
+- **Transcript** and **Notes** panels (top-right buttons) — slide out a live
+  transcript, or jot notes that get saved into the call summary and exports.
 - **Timer** (top left) — elapsed call time. **Caption** (bottom) — the last thing
   said, labelled *You* or *Prospect*.
 - **End call** (top right) — finishes the call and builds the summary.
@@ -103,8 +113,10 @@ When a call is running, the screen switches to the overlay:
 
 | Key | Action |
 | --- | --- |
-| `Esc` | dismiss the current suggestion (or end the call if none is showing) |
+| `Esc` | close the inspector, else dismiss the suggestion, else end the call |
 | `S` | snooze the nudged area for 5 minutes |
+| `T` | toggle the transcript panel |
+| `N` | toggle the notes panel |
 
 ---
 
@@ -153,9 +165,11 @@ Click **End call** (or `Esc`) to finish. The **Summary** screen shows:
 
 - **Coverage grid** — every area, its status, and the **verbatim prospect quote**
   that earned it.
-- **Copilot nudges** — the questions it surfaced and when.
+- **Talk ratio**, your **notes**, a **"Follow up next call"** list of the areas
+  still open, and the **copilot nudges** with timestamps.
 - Buttons:
-  - **Download summary** / **Transcript** — Markdown files.
+  - **Copy** — the summary to your clipboard.
+  - **Download** / **Transcript** — Markdown files.
   - **Export to Drive** — upload the summary + transcript + raw JSON to Google
     Drive (see §9).
   - **Done** — back to Home.

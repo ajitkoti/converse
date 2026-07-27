@@ -91,6 +91,8 @@ export class Session {
   #slotDefs: SlotDefWire[] = [];
   #transcript: TranscriptLine[] = [];
   #suggestions: SuggestionRecord[] = [];
+  #notes = "";
+  #talk = { repMs: 0, prospectMs: 0 };
   #lastRecord: SessionRecord | null = null;
 
   constructor(send: (msg: ServerToClient) => void, env: SessionEnv) {
@@ -126,6 +128,9 @@ export class Session {
       this.#engine!.ingest(e);
       if (e.isFinal && !e.utteranceEnd && e.text) {
         this.#transcript.push({ speaker: e.speaker, text: e.text, tsStart: e.tsStart, tsEnd: e.tsEnd });
+        const dur = Math.max(0, e.tsEnd - e.tsStart);
+        if (e.speaker === "rep") this.#talk.repMs += dur;
+        else this.#talk.prospectMs += dur;
       }
       this.#send({ type: "transcript", event: e });
     });
@@ -215,6 +220,14 @@ export class Session {
     this.#engine?.snoozeSlot(slot);
   }
 
+  ask(slot: SlotId): void {
+    this.#engine?.askNow(slot);
+  }
+
+  setNotes(text: string): void {
+    this.#notes = String(text ?? "").slice(0, 20000);
+  }
+
   #buildRecord(): SessionRecord {
     return {
       id: this.#id,
@@ -228,6 +241,8 @@ export class Session {
       slots: this.#engine?.getSlots() ?? ({} as SessionRecord["slots"]),
       transcript: this.#transcript,
       suggestions: this.#suggestions,
+      notes: this.#notes || undefined,
+      talk: this.#talk,
     };
   }
 

@@ -34,6 +34,8 @@ function sampleRecord(): SessionRecord {
     } as unknown as SessionRecord["slots"],
     transcript: [{ speaker: "prospect", text: "losing ten hours a week", tsStart: 6000, tsEnd: 14000 }],
     suggestions: [{ ts: 30000, slotId: "metrics", question: "How many hours a week?", reason: "overdue", latencyMs: 800 }],
+    notes: "Follow up on the NetSuite integration next call.",
+    talk: { repMs: 40000, prospectMs: 75000 },
   };
 }
 
@@ -105,5 +107,33 @@ describe("SessionStore + summary", () => {
   it("read() rejects path traversal", () => {
     const store = new SessionStore(tmp);
     expect(store.read("../../etc/passwd")).toBeNull();
+  });
+
+  it("deletes a session's files", () => {
+    const store = new SessionStore(tmp);
+    const rec = sampleRecord();
+    store.save(rec);
+    expect(store.list().length).toBe(1);
+    expect(store.delete(rec.id)).toBe(true);
+    expect(store.list().length).toBe(0);
+  });
+
+  it("aggregates analytics across sessions", () => {
+    const store = new SessionStore(tmp);
+    store.save(sampleRecord());
+    const a = store.analytics();
+    expect(a.totalCalls).toBe(1);
+    expect(a.avgCoveragePct).toBe(50); // 1 of 2 covered
+    expect(a.totalTalkMs.prospectMs).toBe(75000);
+    const pain = a.slotCoverage.find((s) => s.id === "identifyPain");
+    expect(pain?.coveredPct).toBe(100);
+    expect(a.trend.length).toBe(1);
+  });
+
+  it("summary includes talk ratio and notes", () => {
+    const md = buildSummaryMarkdown(sampleRecord());
+    expect(md).toContain("Talk ratio");
+    expect(md).toContain("Notes");
+    expect(md).toContain("NetSuite integration");
   });
 });
