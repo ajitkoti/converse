@@ -65,6 +65,11 @@ shows up under **History**.
   into Drive — Drive is the source of truth. Recordings in Drive that have **no
   transcript** (e.g. an audio file you dropped in) can be **transcribed** via
   Deepgram's pre-recorded API and then analyzed, all filed back into Drive.
+- **Team Shared Drive** — point every member's app at the same **Google Shared
+  Drive** folder and each signs in with their own Google account; all calls
+  collect in one shared database, attributed by Rep name. See
+  [`docs/GOOGLE_DRIVE_TEAM.md`](docs/GOOGLE_DRIVE_TEAM.md) for setup + how to run
+  the headless Drive integration test with a service account.
 - **Scorecard & skill index** — rolls up every saved call into a skill profile
   (discovery/coverage, listening, questioning, objection handling) with an overall
   grade, a trend, and a per-call review. Tag calls with a rep name (Settings) to
