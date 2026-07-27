@@ -84,7 +84,7 @@ export class DriveDb {
   /** Upload/replace a call's audio recording. */
   async putRecording(id: string, content: string | Buffer, mimeType = "audio/webm"): Promise<{ id: string; link: string }> {
     const t = await this.#tree();
-    return this.#client.putFile({ name: `${id}.webm`, mimeType, content: content as unknown as string }, t.recordings);
+    return this.#client.putFile({ name: `${id}.webm`, mimeType, content }, t.recordings);
   }
 
   /** List every call the Sessions folder knows about, with which artifacts exist. */

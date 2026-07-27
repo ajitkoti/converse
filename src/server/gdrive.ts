@@ -23,7 +23,7 @@ export const TOKEN_PATH = ".gdrive-token.json";
 export interface DriveFileInput {
   name: string;
   mimeType: string;
-  content: string;
+  content: string | Buffer;
 }
 
 export interface DriveStatus {

@@ -428,6 +428,11 @@ input:focus, textarea:focus { outline: none; border-color: rgba(99,102,241,0.6);
 .btn.danger { background: rgba(255,80,80,0.12); color: #ff9b9b; border-color: rgba(255,80,80,0.32); }
 .btn.danger:hover { background: rgba(255,80,80,0.22); }
 
+/* Call recording player */
+.summary-recording:not(:empty) { margin: 2px 0 16px; }
+.rec-label { font-size: 12px; color: var(--muted); margin-bottom: 5px; }
+.rec-player { width: 100%; max-width: 480px; height: 38px; }
+
 /* Cloud (Drive database) */
 .cloud-status { margin-bottom: 12px; }
 .cloud-disconnected { background: rgba(251,191,36,0.08); border: 1px solid rgba(251,191,36,0.25); border-radius: 10px; padding: 12px 14px; font-size: 13.5px; color: var(--muted); }

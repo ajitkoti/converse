@@ -331,6 +331,12 @@ the engine, none of them imported by it:
   for the summary.
 - **Drive export** (`gdrive.ts`): optional OAuth/service-account upload of the
   same artifacts; gracefully disabled when unconfigured (local save always works).
+- **Call recordings** (`app.ts`, `store.ts`, client `startLiveAudio`): the browser
+  mixes mic + shared-tab audio into one MediaStream, records it with MediaRecorder,
+  and POSTs the `.webm` to `/api/recording?id=` on call end (the id comes from the
+  `ready` message). The server saves it under `data/recordings/` and mirrors it to
+  Drive `Recordings/`; `/api/recording[/exists]` serve playback. Demos aren't
+  recorded (no live audio).
 - **Drive as a call database** (`drive-db.ts`): treats Drive as the system of
   record, filing each call BY TYPE — `Recordings/ Transcripts/ Summaries/
   Analyses/ Sessions/`, one file per call keyed by id, writes overwrite in place.

@@ -7,6 +7,7 @@ import type { CallAnalysis, SessionRecord } from "../src/server/types.js";
 class FakeDrive implements DriveClient {
   folders = new Map<string, { name: string; parent?: string }>();
   files = new Map<string, { name: string; folder: string; content: string }>();
+  #str = (c: string | Buffer) => (typeof c === "string" ? c : c.toString("utf8"));
   #seq = 0;
   connected = true;
   createCalls = 0;
@@ -29,12 +30,12 @@ class FakeDrive implements DriveClient {
     const existing = await this.findFile(file.name, folderId);
     if (existing) {
       this.updateCalls++;
-      this.files.set(existing.id, { name: file.name, folder: folderId, content: file.content });
+      this.files.set(existing.id, { name: file.name, folder: folderId, content: this.#str(file.content) });
       return { id: existing.id, link: `link/${existing.id}` };
     }
     this.createCalls++;
     const id = `file-${++this.#seq}`;
-    this.files.set(id, { name: file.name, folder: folderId, content: file.content });
+    this.files.set(id, { name: file.name, folder: folderId, content: this.#str(file.content) });
     return { id, link: `link/${id}` };
   }
   async readFile(fileId: string): Promise<string> {

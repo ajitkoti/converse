@@ -46,7 +46,7 @@ const badCall = readFixture("bad-call.json");
 export type { SlotDefWire } from "./types.js";
 
 export type ServerToClient =
-  | { type: "ready"; slots: ReturnType<QualificationEngine["getSlots"]>; slotDefs: SlotDefWire[]; mode: "demo" | "live" }
+  | { type: "ready"; id: string; slots: ReturnType<QualificationEngine["getSlots"]>; slotDefs: SlotDefWire[]; mode: "demo" | "live" }
   | { type: "status"; text: string; level: "info" | "warn" | "error" }
   | { type: "transcript"; event: TranscriptEvent }
   | { type: "guidance"; event: GuidanceEvent }
@@ -198,7 +198,7 @@ export class Session {
       }
       this.#send({ type: "guidance", event: e });
     });
-    this.#send({ type: "ready", slots: this.#engine.getSlots(), mode, slotDefs: this.#slotDefs });
+    this.#send({ type: "ready", id: this.#id, slots: this.#engine.getSlots(), mode, slotDefs: this.#slotDefs });
   }
 
   // ---- DEMO --------------------------------------------------------------
