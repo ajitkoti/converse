@@ -50,6 +50,23 @@ export class ContextLibrary {
     return this.#docs.length;
   }
 
+  /** The single most relevant doc for a query, with a short snippet. */
+  bestMatch(query: string, snippetChars = 320): { name: string; snippet: string } | null {
+    if (!this.#docs.length) return null;
+    const terms = tokenize(query);
+    let best: ContextDoc | null = null;
+    let bestScore = 0;
+    for (const d of this.#docs) {
+      const score = overlap(terms, tokenize(d.text));
+      if (score > bestScore) {
+        bestScore = score;
+        best = d;
+      }
+    }
+    if (!best || bestScore === 0) return null;
+    return { name: best.name, snippet: best.text.slice(0, snippetChars).trim() };
+  }
+
   /** Build the context block to inject, ranked by relevance to the window. */
   contextBlock(windowText: string, budget = DEFAULT_BUDGET): string | undefined {
     if (!this.#docs.length) return undefined;

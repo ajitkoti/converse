@@ -20,6 +20,8 @@ export interface SlotDef {
   id: SlotId;
   label: string;
   framework: string;
+  /** what "covered" means for this slot — fed to the classifier prompt. */
+  description?: string;
 }
 
 export interface SlotBudget {
@@ -48,7 +50,7 @@ export interface EngineConfig {
     snoozeSeconds: number;
   };
   slots: SlotDef[];
-  budgets: Record<SlotId, SlotBudget>;
+  budgets: Record<string, SlotBudget>;
 }
 
 /** Deep-merge helper limited to plain objects (no arrays merge — arrays replace). */
@@ -105,6 +107,15 @@ function validate(cfg: EngineConfig): void {
 export function loadConfig(override?: ConfigOverride): EngineConfig {
   const base = stripComments(rawConfig) as EngineConfig;
   const cfg = override ? merge(base, override) : base;
+  // When a framework override swaps the slot set, budgets deep-merge — drop any
+  // budget that no longer maps to an active slot (e.g. leftover MEDDPICC budgets
+  // after switching to BANT) so only the active framework's budgets remain.
+  if (override?.slots) {
+    const active = new Set(cfg.slots.map((s) => s.id));
+    cfg.budgets = Object.fromEntries(
+      Object.entries(cfg.budgets).filter(([id]) => active.has(id)),
+    );
+  }
   validate(cfg);
   return cfg;
 }

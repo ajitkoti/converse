@@ -34,17 +34,17 @@ describe("QualificationEngine — Phase 2 state engine", () => {
     await feed(engine, loadCallFixture(goodCall));
     const s = engine.getSlots();
 
-    expect(s.identifyPain.status).toBe("covered");
-    expect(s.metrics.status).toBe("covered");
-    expect(s.economicBuyer.status).toBe("covered");
-    expect(s.decisionCriteria.status).toBe("covered");
-    expect(s.decisionProcess.status).toBe("covered");
-    expect(s.competition.status).toBe("covered");
-    expect(s.champion.status).toBe("covered");
-    expect(s.paperProcess.status).toBe("covered");
+    expect(s.identifyPain?.status).toBe("covered");
+    expect(s.metrics?.status).toBe("covered");
+    expect(s.economicBuyer?.status).toBe("covered");
+    expect(s.decisionCriteria?.status).toBe("covered");
+    expect(s.decisionProcess?.status).toBe("covered");
+    expect(s.competition?.status).toBe("covered");
+    expect(s.champion?.status).toBe("covered");
+    expect(s.paperProcess?.status).toBe("covered");
 
     // Evidence must be a verbatim PROSPECT quote.
-    expect(s.economicBuyer.evidence[0]).toContain("cfo dana signs off");
+    expect(s.economicBuyer?.evidence[0]).toContain("cfo dana signs off");
   });
 
   it("leaves slots empty / partial on a BAD (vague) discovery call", async () => {
@@ -52,14 +52,14 @@ describe("QualificationEngine — Phase 2 state engine", () => {
     await feed(engine, loadCallFixture(badCall));
     const s = engine.getSlots();
 
-    expect(s.identifyPain.status).toBe("empty");
-    expect(s.metrics.status).toBe("empty");
-    expect(s.decisionCriteria.status).toBe("empty");
-    expect(s.decisionProcess.status).toBe("empty");
-    expect(s.competition.status).toBe("empty");
+    expect(s.identifyPain?.status).toBe("empty");
+    expect(s.metrics?.status).toBe("empty");
+    expect(s.decisionCriteria?.status).toBe("empty");
+    expect(s.decisionProcess?.status).toBe("empty");
+    expect(s.competition?.status).toBe("empty");
     // Vague authority answer must NOT be "covered".
-    expect(s.economicBuyer.status).not.toBe("covered");
-    expect(s.economicBuyer.status).toBe("partial");
+    expect(s.economicBuyer?.status).not.toBe("covered");
+    expect(s.economicBuyer?.status).toBe("partial");
   });
 
   it("rejects evidence that comes from the REP, not the prospect", async () => {
@@ -81,7 +81,7 @@ describe("QualificationEngine — Phase 2 state engine", () => {
     engine.ingest(ev("prospect", "hmm i am not sure honestly", 5, 8));
     await engine.idle();
 
-    expect(engine.getSlots().metrics.status).toBe("empty");
+    expect(engine.getSlots().metrics?.status).toBe("empty");
     const decisions = log.ofEvent("classify").flatMap((r) => r.decisions as { reason: string }[]);
     expect(decisions.some((d) => d.reason === "unverified-quote")).toBe(true);
   });
@@ -102,12 +102,12 @@ describe("QualificationEngine — Phase 2 state engine", () => {
 
     engine.ingest(ev("prospect", quote, 0, 4));
     await engine.idle();
-    expect(engine.getSlots().identifyPain.status).toBe("covered");
+    expect(engine.getSlots().identifyPain?.status).toBe("covered");
 
     engine.ingest(ev("prospect", quote, 5, 9));
     await engine.idle();
     // Second classify tried to downgrade to partial — must remain covered.
-    expect(engine.getSlots().identifyPain.status).toBe("covered");
+    expect(engine.getSlots().identifyPain?.status).toBe("covered");
   });
 
   it("emits a slots GuidanceEvent when state changes", async () => {
@@ -127,7 +127,7 @@ describe("QualificationEngine — Phase 2 state engine", () => {
     engine.ingest(ev("prospect", quote, 0, 5));
     await engine.idle();
     expect(events.length).toBe(1);
-    expect(events[0]?.economicBuyer.status).toBe("covered");
+    expect(events[0]?.economicBuyer?.status).toBe("covered");
   });
 });
 

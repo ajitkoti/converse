@@ -105,6 +105,12 @@ When a call is running, the screen switches to the overlay:
   the prospect said. Auto-dismisses after 25 seconds.
 - **Transcript** and **Notes** panels (top-right buttons) — slide out a live
   transcript, or jot notes that get saved into the call summary and exports.
+- **Coaching stats** (top left) — live questions asked and your speaking pace
+  (wpm). You'll also get a coaching nudge if you monologue too long, talk too much
+  of the time, or ask too few questions.
+- **Objection alerts** — when the prospect raises a price/timing/competitor/etc.
+  objection, an amber card pops with the matching **battlecard** from your Context
+  docs. Add battlecards in the Context tab to make these useful.
 - **Timer** (top left) — elapsed call time. **Caption** (bottom) — the last thing
   said, labelled *You* or *Prospect*.
 - **End call** (top right) — finishes the call and builds the summary.
@@ -168,11 +174,21 @@ Click **End call** (or `Esc`) to finish. The **Summary** screen shows:
 - **Talk ratio**, your **notes**, a **"Follow up next call"** list of the areas
   still open, and the **copilot nudges** with timestamps.
 - Buttons:
-  - **Copy** — the summary to your clipboard.
+  - **Copy** / **Copy CRM fields** — the summary, or slot-by-slot fields to paste
+    into your CRM.
   - **Download** / **Transcript** — Markdown files.
-  - **Export to Drive** — upload the summary + transcript + raw JSON to Google
-    Drive (see §9).
+  - **Email** — opens a pre-filled email draft. **Slack** — posts to your Slack
+    webhook (set it in Settings). **Drive** — uploads to Google Drive (see §9).
   - **Done** — back to Home.
+
+It also shows **coaching stats** (talk ratio, questions, pace, longest monologue)
+and any **objections** raised with their matched battlecard.
+
+### Switching frameworks
+
+By default the copilot tracks **MEDDPICC**. In **Settings → Framework** you can
+switch live calls to **BANT** or **SPICED** — the rail, budgets, and classifier
+all adapt. (Demos always use MEDDPICC.)
 
 Every call is **auto-saved locally** and appears under **History**, where you can
 reopen its summary and re-download anytime. (You can turn auto-save off in

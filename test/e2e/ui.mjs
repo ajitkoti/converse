@@ -33,8 +33,11 @@ try {
   check("home renders with demo choices", await page.locator(".choice").count() >= 3);
   await page.screenshot({ path: path.join(SHOTS, "1-home.png") });
 
-  // 2. Settings — speed up the demo so the test is quick
+  // 2. Settings — framework selector present; speed up the demo
   await page.click('.nav-link[data-view="settings"]');
+  await page.waitForFunction(() => document.querySelectorAll("#set-framework option").length >= 3);
+  const fwOpts = await page.locator("#set-framework option").count();
+  check("framework selector populated (MEDDPICC/BANT/SPICED)", fwOpts >= 3, `${fwOpts} options`);
   await page.fill("#set-speed", "20");
   await page.click("#settings-save");
   await page.waitForFunction(() => document.getElementById("settings-saved")?.textContent?.includes("Saved"));
@@ -51,6 +54,8 @@ try {
   // 4. Timer advances + a slot goes green during the call
   await page.waitForFunction(() => document.getElementById("timer")?.textContent !== "00:00", { timeout: 15000 });
   check("call timer advances", true);
+  await page.waitForFunction(() => /wpm/.test(document.getElementById("coach-stats")?.textContent || ""), { timeout: 20000 });
+  check("live coaching stats (questions + wpm) show", true);
   await page.waitForFunction(() => document.querySelector("#rail .slot.covered"), { timeout: 25000 });
   check("a slot turns green (covered) live", true);
 
@@ -77,6 +82,8 @@ try {
   check("summary shows covered slots", covered > 0, `${covered} covered`);
   check("summary shows talk ratio", (await page.locator("#summary-talk .tm-bar").count()) === 1);
   check("summary shows notes", (await page.textContent("#summary-notes"))?.includes("SOC2"));
+  check("summary shows coaching tiles", (await page.locator("#summary-coaching .coach-tile").count()) >= 3);
+  check("summary has export buttons (Slack/Email/CRM)", (await page.locator("#export-slack, #export-email, #copy-crm").count()) === 3);
   await page.screenshot({ path: path.join(SHOTS, "3-summary.png") });
 
   // 8. Dashboard

@@ -29,14 +29,14 @@
   },
 
   "slots": [
-    { "id": "identifyPain", "label": "Pain", "framework": "MEDDPICC" },
-    { "id": "metrics", "label": "Metrics", "framework": "MEDDPICC" },
-    { "id": "economicBuyer", "label": "Econ Buyer", "framework": "MEDDPICC" },
-    { "id": "decisionCriteria", "label": "Criteria", "framework": "MEDDPICC" },
-    { "id": "decisionProcess", "label": "Process", "framework": "MEDDPICC" },
-    { "id": "paperProcess", "label": "Paper", "framework": "MEDDPICC" },
-    { "id": "champion", "label": "Champion", "framework": "MEDDPICC" },
-    { "id": "competition", "label": "Competition", "framework": "MEDDPICC" }
+    { "id": "identifyPain", "label": "Pain", "framework": "MEDDPICC", "description": "the concrete business pain and its consequences." },
+    { "id": "metrics", "label": "Metrics", "framework": "MEDDPICC", "description": "quantified economic impact / the numbers that define success." },
+    { "id": "economicBuyer", "label": "Econ Buyer", "framework": "MEDDPICC", "description": "the person with final budget authority (named or clearly identified)." },
+    { "id": "decisionCriteria", "label": "Criteria", "framework": "MEDDPICC", "description": "the explicit criteria the prospect will judge a solution on." },
+    { "id": "decisionProcess", "label": "Process", "framework": "MEDDPICC", "description": "the steps/stages/timeline to reach a decision." },
+    { "id": "paperProcess", "label": "Paper", "framework": "MEDDPICC", "description": "procurement / legal / security / contracting steps." },
+    { "id": "champion", "label": "Champion", "framework": "MEDDPICC", "description": "an internal advocate with influence who will sell for you." },
+    { "id": "competition", "label": "Competition", "framework": "MEDDPICC", "description": "incumbents, alternatives, or doing nothing." }
   ],
 
   "budgets": {

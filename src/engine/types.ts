@@ -28,8 +28,8 @@ export interface TranscriptEvent {
   utteranceEnd: boolean;
 }
 
-/** MEDDPICC qualification slots. Order is not significant; ids are stable keys. */
-export type SlotId =
+/** The default MEDDPICC slot ids. */
+export type MeddpiccSlotId =
   | "metrics"
   | "economicBuyer"
   | "decisionCriteria"
@@ -38,6 +38,12 @@ export type SlotId =
   | "identifyPain"
   | "champion"
   | "competition";
+
+/**
+ * A slot id. The MEDDPICC ids get autocomplete; `(string & {})` keeps the type
+ * open so other frameworks (BANT, SPICED, custom) can define their own ids.
+ */
+export type SlotId = MeddpiccSlotId | (string & {});
 
 export type SlotStatus = "empty" | "partial" | "covered";
 
@@ -51,7 +57,7 @@ export interface SlotState {
   lastUpdatedTs: number;
 }
 
-export type SlotStates = Record<SlotId, SlotState>;
+export type SlotStates = Record<string, SlotState>;
 
 /**
  * Output stream. The Electron/overlay layer subscribes to these and renders

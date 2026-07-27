@@ -300,7 +300,7 @@ export class QualificationEngine extends EventEmitter {
       const budget = this.#cfg.budgets[slot.id];
       if (!budget) continue;
       const state = this.#states[slot.id];
-      if (state.status === "covered") continue;
+      if (state?.status === "covered") continue;
       const snoozedUntil = this.#snoozedUntilMs[slot.id];
       if (snoozedUntil !== undefined && this.#latestTs < snoozedUntil) continue;
       const overBy = nowSec - budget.escalateBy;

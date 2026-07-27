@@ -28,6 +28,7 @@ export interface SessionRecord {
   mode: "demo" | "live";
   fixture?: string;
   persona?: string;
+  framework?: string;
   durationMs: number;
   slotDefs: SlotDefWire[];
   slots: SlotStates;
@@ -35,6 +36,13 @@ export interface SessionRecord {
   suggestions: SuggestionRecord[];
   notes?: string;
   talk: { repMs: number; prospectMs: number };
+  coaching?: {
+    questionsAsked: number;
+    repWpm: number;
+    longestMonologueMs: number;
+    talkRatioRepPct: number;
+  };
+  objections?: Array<{ ts: number; type: string; label: string; doc?: string }>;
 }
 
 /** Lightweight header for the history list. */
