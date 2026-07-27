@@ -19,8 +19,18 @@
  */
 
 import * as fs from "node:fs";
+import { Readable } from "node:stream";
 import { google, type drive_v3 } from "googleapis";
 import type { OAuth2Client } from "google-auth-library";
+
+/**
+ * googleapis' media upload wants a string or a Readable stream — a raw Buffer
+ * throws `part.body.pipe is not a function`. Recordings are Buffers, so wrap
+ * them in a stream; strings pass through unchanged.
+ */
+export function toMediaBody(content: string | Buffer): string | Readable {
+  return Buffer.isBuffer(content) ? Readable.from(content) : content;
+}
 
 export const DRIVE_SCOPES = ["https://www.googleapis.com/auth/drive"];
 export const TOKEN_PATH = ".gdrive-token.json";
@@ -169,7 +179,7 @@ export class DriveExporter implements DriveClient {
     if (existing) {
       const res = await this.#drive.files.update({
         fileId: existing.id,
-        media: { mimeType: file.mimeType, body: file.content },
+        media: { mimeType: file.mimeType, body: toMediaBody(file.content) },
         fields: "id, webViewLink",
         supportsAllDrives: true,
       });
@@ -177,7 +187,7 @@ export class DriveExporter implements DriveClient {
     }
     const res = await this.#drive.files.create({
       requestBody: { name: file.name, parents: [folderId] },
-      media: { mimeType: file.mimeType, body: file.content },
+      media: { mimeType: file.mimeType, body: toMediaBody(file.content) },
       fields: "id, webViewLink",
       supportsAllDrives: true,
     });
@@ -228,7 +238,7 @@ export class DriveExporter implements DriveClient {
     for (const f of files) {
       const res = await this.#drive.files.create({
         requestBody: { name: f.name, parents: folderId ? [folderId] : undefined },
-        media: { mimeType: f.mimeType, body: f.content },
+        media: { mimeType: f.mimeType, body: toMediaBody(f.content) },
         fields: "id, webViewLink",
         supportsAllDrives: true,
       });

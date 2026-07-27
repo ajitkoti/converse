@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
+import { Readable } from "node:stream";
 import { DriveDb } from "../src/server/drive-db.js";
-import type { DriveClient, DriveEntry, DriveFileInput, DriveStatus } from "../src/server/gdrive.js";
+import { toMediaBody, type DriveClient, type DriveEntry, type DriveFileInput, type DriveStatus } from "../src/server/gdrive.js";
 import type { CallAnalysis, SessionRecord } from "../src/server/types.js";
 
 /** In-memory Drive so the database logic is tested without Google credentials. */
@@ -192,5 +193,18 @@ describe("DriveDb.analyzeRecording", () => {
 
   it("returns null when neither a record nor a recording exists", async () => {
     expect(await db.analyzeRecording("ghost", deps("x"))).toBeNull();
+  });
+});
+
+describe("toMediaBody (upload body coercion)", () => {
+  it("passes strings through unchanged", () => {
+    expect(toMediaBody("hello")).toBe("hello");
+  });
+  it("wraps a Buffer in a Readable stream (googleapis needs a stream, not a Buffer)", async () => {
+    const body = toMediaBody(Buffer.from([1, 2, 3, 4]));
+    expect(body).toBeInstanceOf(Readable);
+    const chunks: Buffer[] = [];
+    for await (const c of body as Readable) chunks.push(c as Buffer);
+    expect([...Buffer.concat(chunks)]).toEqual([1, 2, 3, 4]);
   });
 });
