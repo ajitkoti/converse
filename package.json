@@ -7,6 +7,8 @@
     "node": ">=20"
   },
   "scripts": {
+    "start": "node --import tsx src/server/index.ts",
+    "dev": "node --import tsx --watch src/server/index.ts",
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
@@ -14,10 +16,12 @@
     "replay": "node --import tsx scripts/replay.ts"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.65.0"
+    "@anthropic-ai/sdk": "^0.65.0",
+    "ws": "^8.21.1"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
+    "@types/ws": "^8.18.1",
     "tsx": "^4.19.0",
     "typescript": "^5.7.0",
     "vitest": "^2.1.0"

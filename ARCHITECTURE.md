@@ -233,6 +233,34 @@ Subscribe to `guidance:update` and render, sparsely:
   `guidance:dismiss` / `guidance:snooze`). Ignore `suggestion-dropped` (log only).
 - **Elapsed timer.** Nothing else — sparse is the feature.
 
+## Two hosts, one engine
+
+The engine is deliberately host-agnostic. It ships with a **browser host** (the
+runnable app) and a **raven adapter** (for the native Electron overlay); both feed
+the same `TranscriptEvent` stream in and render the same `GuidanceEvent` stream
+out.
+
+```
+                         ┌───────────────── shared engine ─────────────────┐
+Browser host (this app): mic + shared tab audio → PCM → server → Deepgram ─┐
+                                                                            ├─► TranscriptBus → QualificationEngine ─► GuidanceEvent
+raven host (adapter):    raven's two Deepgram sockets (passive tap) ────────┘                                              │
+                         └──────────────────────────────────────────────────────────────────────────────────────────────┘
+   browser overlay (public/)  ◄──── GuidanceEvent ────►  raven overlay renderer (guidance:update)
+```
+
+**Browser host** (`src/server/` + `public/`): a local Node server serves the
+overlay and, per browser, runs a `Session` that is either **demo** (a fixture
+replayed in real time through the offline classifier — zero keys) or **live**
+(mic via `getUserMedia` + prospect via `getDisplayMedia({audio:true})`, each
+resampled to 16 kHz linear16 in an `AudioWorklet` and streamed to two Deepgram
+connections server-side). Same `mic → rep`, `system → prospect` split as raven;
+in-browser `echoCancellation` stands in for AEC3. This is the fastest way to
+actually use the copilot — no native build.
+
+**raven host** (`src/integration/raven-copilot.ts`): the passive-tap wiring
+described above, for the native stealth overlay.
+
 ## Testing
 
 - **Logic → fixtures.** `src/fixtures/*.json` replay through the real engine with

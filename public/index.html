@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Converse · Sales Qualification Copilot</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <!-- Setup screen -->
+    <section id="setup" class="setup">
+      <div class="setup-card">
+        <div class="brand"><span class="bolt">⚡</span> Converse</div>
+        <h1>Live sales qualification copilot</h1>
+        <p class="sub">
+          Real-time MEDDPICC coverage, time-budgeted escalation, and one contextual
+          question at the right pause. Try a demo — no setup — or go live on a real call.
+        </p>
+
+        <div class="choices">
+          <button class="choice primary" data-mode="demo" data-fixture="good-call">
+            <span class="ch-title">▶ Demo · strong call</span>
+            <span class="ch-sub">Watch the slots fill green as a great prospect reveals everything.</span>
+          </button>
+          <button class="choice" data-mode="demo" data-fixture="bad-call">
+            <span class="ch-title">▶ Demo · rough call</span>
+            <span class="ch-sub">A vague prospect — see the copilot nudge you with a bridging question.</span>
+          </button>
+          <button class="choice live" data-mode="live">
+            <span class="ch-title">● Go live</span>
+            <span class="ch-sub">Your mic + a shared meeting tab. Needs a Deepgram key in <code>.env</code>.</span>
+          </button>
+        </div>
+
+        <div id="setup-status" class="setup-status"></div>
+      </div>
+      <footer class="setup-foot">Engine runs locally · transcripts never leave your machine except to your own Deepgram/Anthropic keys</footer>
+    </section>
+
+    <!-- Overlay -->
+    <section id="overlay" class="overlay hidden">
+      <header class="hud">
+        <div class="hud-left">
+          <span id="rec" class="rec"></span>
+          <span id="timer" class="timer">00:00</span>
+          <span id="mode-badge" class="mode-badge"></span>
+        </div>
+        <button id="stop" class="stop" title="End (Esc)">End</button>
+      </header>
+
+      <aside id="rail" class="rail"><!-- slot rows injected --></aside>
+
+      <div id="caption" class="caption"></div>
+
+      <div id="card" class="card hidden" role="status" aria-live="polite">
+        <div class="card-tag"><span id="card-slot"></span> · nudge</div>
+        <div id="card-q" class="card-q"></div>
+        <div class="card-actions">
+          <button id="card-dismiss" class="btn ghost">Dismiss <kbd>Esc</kbd></button>
+          <button id="card-snooze" class="btn">Snooze 5m <kbd>S</kbd></button>
+        </div>
+      </div>
+
+      <div id="toast" class="toast hidden"></div>
+    </section>
+
+    <script src="/app.js" type="module"></script>
+  </body>
+</html>
