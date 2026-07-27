@@ -11,9 +11,26 @@ function coveredCount(r: SessionRecord): number {
 
 export class SessionStore {
   #dir: string;
+  #recDir: string;
   constructor(dataDir: string) {
     this.#dir = path.join(dataDir, "sessions");
+    this.#recDir = path.join(dataDir, "recordings");
     fs.mkdirSync(this.#dir, { recursive: true });
+    fs.mkdirSync(this.#recDir, { recursive: true });
+  }
+
+  /** Persist a call's audio recording locally. Returns its path. */
+  saveRecording(id: string, data: Buffer): string {
+    const p = path.join(this.#recDir, `${sanitize(id)}.webm`);
+    if (!p.startsWith(this.#recDir)) throw new Error("bad id");
+    fs.writeFileSync(p, data);
+    return p;
+  }
+
+  /** Local path to a call's recording, or null if none saved. */
+  recordingPath(id: string): string | null {
+    const p = path.join(this.#recDir, `${sanitize(id)}.webm`);
+    return p.startsWith(this.#recDir) && fs.existsSync(p) ? p : null;
   }
 
   /** Persist a record and its rendered artifacts. Returns the file paths. */
@@ -78,6 +95,11 @@ export class SessionStore {
         fs.unlinkSync(p);
         removed = true;
       }
+    }
+    const rec = path.join(this.#recDir, `${sanitize(id)}.webm`);
+    if (rec.startsWith(this.#recDir) && fs.existsSync(rec)) {
+      fs.unlinkSync(rec);
+      removed = true;
     }
     return removed;
   }

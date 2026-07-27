@@ -55,6 +55,9 @@ shows up under **History**.
   bridging-question card at natural pauses, elapsed timer, live caption.
 - **Post-call summary + history** — coverage with evidence quotes and the nudges
   given; browse and reopen past calls.
+- **Call recordings** — live calls are recorded (your mic + the shared tab audio,
+  mixed) to a `.webm`, saved locally and (with sync on) uploaded to Drive. The
+  summary and history show an inline audio player.
 - **Google Drive as a call database** — with Drive connected + sync on, every
   finished call is filed by type (`Recordings/`, `Transcripts/`, `Summaries/`,
   `Analyses/`, `Sessions/`), one file per call. The **Cloud** view browses it,

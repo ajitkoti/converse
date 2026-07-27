@@ -187,6 +187,29 @@ export async function startServer(opts: ServerOptions): Promise<RunningServer> {
       if (req.method === "GET" && p === "/api/analytics") return json(200, store.analytics());
       if (req.method === "GET" && p === "/api/scorecard") return json(200, buildScorecard(store));
 
+      // ---- Call recordings (audio) ----
+      if (req.method === "POST" && p === "/api/recording") {
+        const id = String(url.searchParams.get("id") ?? "").replace(/[^a-zA-Z0-9_-]/g, "");
+        if (!id) return json(400, { error: "missing id" });
+        const data = await readBinary(req);
+        if (!data.length) return json(400, { error: "empty recording" });
+        store.saveRecording(id, data);
+        let driveLink: string | undefined;
+        if (settings.get().driveSync !== false && driveDb.connected()) {
+          try { driveLink = (await driveDb.putRecording(id, data)).link; } catch { /* best effort */ }
+        }
+        return json(200, { ok: true, driveLink });
+      }
+      if (req.method === "GET" && p === "/api/recording/exists") {
+        return json(200, { exists: Boolean(store.recordingPath(url.searchParams.get("id") ?? "")) });
+      }
+      if (req.method === "GET" && p === "/api/recording") {
+        const rec = store.recordingPath(url.searchParams.get("id") ?? "");
+        if (!rec) return json(404, { error: "no recording" });
+        res.writeHead(200, { "Content-Type": "audio/webm" });
+        return void fs.createReadStream(rec).pipe(res);
+      }
+
       // ---- Google Drive as the call database ----
       if (req.method === "GET" && p === "/api/drive/calls") {
         if (!driveDb.connected()) return json(200, { connected: false, calls: [] });
@@ -362,7 +385,8 @@ function listen(server: http.Server, port: number): Promise<number> {
       server.once("error", onError);
       server.listen(attempt, () => {
         server.removeListener("error", onError);
-        resolve(attempt);
+        const addr = server.address();
+        resolve(typeof addr === "object" && addr ? addr.port : attempt);
       });
     };
     tryListen();
@@ -386,6 +410,16 @@ function readJson<T = Record<string, unknown>>(req: http.IncomingMessage): Promi
         reject(e);
       }
     });
+    req.on("error", reject);
+  });
+}
+
+/** Collect a request's raw body into a Buffer (for binary uploads like recordings). */
+function readBinary(req: http.IncomingMessage): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    req.on("data", (c: Buffer) => chunks.push(c));
+    req.on("end", () => resolve(Buffer.concat(chunks)));
     req.on("error", reject);
   });
 }

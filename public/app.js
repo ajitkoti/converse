@@ -105,6 +105,7 @@ function send(o) { if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stri
 function handle(msg) {
   switch (msg.type) {
     case "ready":
+      recSessionId = msg.id || null;
       slotDefs = msg.slotDefs; statusBySlot = {}; slotsData = msg.slots || {};
       for (const s of msg.slotDefs) statusBySlot[s.id] = "empty";
       applySlots(msg.slots); buildRail(); $("mode-badge").textContent = msg.mode; showOverlayScreen();
@@ -302,21 +303,24 @@ function togglePanel(which) {
 }
 
 // ---------- Live audio ----------
+let recSessionId = null, recorder = null, recChunks = [];
 async function startLiveAudio() {
   const ac = new AudioContext({ sampleRate: 16000 });
   await ac.audioWorklet.addModule("/pcm-worklet.js");
+  const recDest = ac.createMediaStreamDestination(); // mix both channels for the recording
   const mic = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, channelCount: 1 } });
-  hookChannel(ac, mic, 0);
+  hookChannel(ac, mic, 0, recDest);
   let display = null;
   try { display = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true }); }
   catch { toast("Screen/tab not shared — only your mic will be transcribed.", "warn"); }
   if (display) {
-    if (display.getAudioTracks().length) hookChannel(ac, display, 1);
+    if (display.getAudioTracks().length) hookChannel(ac, display, 1, recDest);
     else toast('No tab audio captured — reshare and tick "Share tab audio".', "warn");
   }
-  audioStop = () => { try { ac.close(); } catch {} mic.getTracks().forEach((t) => t.stop()); if (display) display.getTracks().forEach((t) => t.stop()); audioStop = null; };
+  startRecorder(recDest.stream);
+  audioStop = () => { stopRecorder(); try { ac.close(); } catch {} mic.getTracks().forEach((t) => t.stop()); if (display) display.getTracks().forEach((t) => t.stop()); audioStop = null; };
 }
-function hookChannel(ac, stream, channel) {
+function hookChannel(ac, stream, channel, recDest) {
   const src = ac.createMediaStreamSource(stream);
   const node = new AudioWorkletNode(ac, "pcm");
   node.port.onmessage = (e) => {
@@ -326,6 +330,43 @@ function hookChannel(ac, stream, channel) {
   };
   const sink = ac.createGain(); sink.gain.value = 0;
   src.connect(node); node.connect(sink); sink.connect(ac.destination);
+  if (recDest) src.connect(recDest);
+}
+function startRecorder(stream) {
+  if (typeof MediaRecorder === "undefined") return;
+  try {
+    const mime = MediaRecorder.isTypeSupported("audio/webm;codecs=opus") ? "audio/webm;codecs=opus" : "audio/webm";
+    recorder = new MediaRecorder(stream, { mimeType: mime });
+    recChunks = [];
+    recorder.ondataavailable = (e) => { if (e.data && e.data.size) recChunks.push(e.data); };
+    recorder.onstop = uploadRecording;
+    recorder.start(1000);
+  } catch { recorder = null; }
+}
+function stopRecorder() { try { if (recorder && recorder.state !== "inactive") recorder.stop(); } catch {} }
+async function uploadRecording() {
+  const blob = new Blob(recChunks, { type: "audio/webm" });
+  recChunks = []; recorder = null;
+  const id = recSessionId;
+  if (!blob.size || !id) return;
+  try {
+    const res = await fetch(`/api/recording?id=${encodeURIComponent(id)}`, { method: "POST", headers: { "Content-Type": "audio/webm" }, body: blob });
+    if (res.ok) {
+      const r = await res.json().catch(() => ({}));
+      toast(`Recording saved${r.driveLink ? " to Drive" : ""}`, "info");
+      if (lastRecord && lastRecord.id === id) showRecordingPlayer(id);
+    }
+  } catch { /* recording is best-effort */ }
+}
+async function showRecordingPlayer(id) {
+  const el = $("summary-recording");
+  if (!el) return;
+  el.innerHTML = "";
+  try {
+    const { exists } = await api.get(`/api/recording/exists?id=${encodeURIComponent(id)}`);
+    if (!exists) return; // no recording for this call
+    el.innerHTML = `<div class="rec-label">🎧 Call recording</div><audio class="rec-player" controls preload="none" src="/api/recording?id=${encodeURIComponent(id)}"></audio>`;
+  } catch { /* leave empty */ }
 }
 
 // ---------- Start / end ----------
@@ -366,6 +407,8 @@ function renderSummary(rec, opts = {}) {
   $("summary-talk").innerHTML = talkTotal
     ? `<div class="tm-bar"><i style="width:${repPct}%"></i><b style="width:${100 - repPct}%"></b></div><div class="lbl">Talk ratio — you ${repPct}% · prospect ${100 - repPct}%</div>`
     : "";
+
+  showRecordingPlayer(rec.id); // hides itself if no recording exists for this call
 
   const c = rec.coaching;
   const p = rec.perf;
