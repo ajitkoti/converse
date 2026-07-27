@@ -118,6 +118,18 @@ describe("SessionStore + summary", () => {
     expect(store.list().length).toBe(0);
   });
 
+  it("exports all records and purges everything", () => {
+    const store = new SessionStore(tmp);
+    const a = sampleRecord();
+    const b = { ...sampleRecord(), id: makeSessionId(new Date("2026-07-28T10:00:00Z"), "ef01") };
+    store.save(a);
+    store.save(b);
+    expect(store.allRecords().length).toBe(2);
+    expect(store.purgeAll()).toBe(2);
+    expect(store.list().length).toBe(0);
+    expect(store.allRecords().length).toBe(0);
+  });
+
   it("aggregates analytics across sessions", () => {
     const store = new SessionStore(tmp);
     store.save(sampleRecord());
