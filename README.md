@@ -62,7 +62,9 @@ shows up under **History**.
   finished call is filed by type (`Recordings/`, `Transcripts/`, `Summaries/`,
   `Analyses/`, `Sessions/`), one file per call. The **Cloud** view browses it,
   fetches a call's stored analysis, and re-runs (refreshes) the analysis back
-  into Drive — Drive is the source of truth.
+  into Drive — Drive is the source of truth. Recordings in Drive that have **no
+  transcript** (e.g. an audio file you dropped in) can be **transcribed** via
+  Deepgram's pre-recorded API and then analyzed, all filed back into Drive.
 - **Scorecard & skill index** — rolls up every saved call into a skill profile
   (discovery/coverage, listening, questioning, objection handling) with an overall
   grade, a trend, and a per-call review. Tag calls with a rep name (Settings) to

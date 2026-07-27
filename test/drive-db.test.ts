@@ -41,6 +41,9 @@ class FakeDrive implements DriveClient {
   async readFile(fileId: string): Promise<string> {
     return this.files.get(fileId)?.content ?? "";
   }
+  async readFileBinary(fileId: string): Promise<Buffer> {
+    return Buffer.from(this.files.get(fileId)?.content ?? "", "utf8");
+  }
   async listFolder(folderId: string): Promise<DriveEntry[]> {
     return [...this.files.entries()].filter(([, f]) => f.folder === folderId).map(([id, f]) => ({ id, name: f.name }));
   }
@@ -150,5 +153,44 @@ describe("DriveDb.refreshAnalysis", () => {
     await db.storeCall(rec());
     const fresh = await db.refreshAnalysis("sess-2026-07-27_10-00-00-abcd", async () => analysis("async"));
     expect(fresh?.sentiment.rationale).toBe("async");
+  });
+});
+
+describe("DriveDb.analyzeRecording", () => {
+  const deps = (analysisTag: string) => ({
+    transcribe: async () => ({ text: "hello", lines: [{ speaker: "prospect" as const, text: "we lose 10 hours", tsStart: 0, tsEnd: 5000 }] }),
+    analyze: () => analysis(analysisTag),
+    now: () => "2026-07-27T10:00:00.000Z",
+  });
+
+  it("analyzes over an existing record without transcribing", async () => {
+    await db.storeCall(rec());
+    let transcribeCalled = false;
+    const out = await db.analyzeRecording("sess-2026-07-27_10-00-00-abcd", {
+      ...deps("fromRecord"),
+      transcribe: async () => { transcribeCalled = true; return { text: "", lines: [] }; },
+    });
+    expect(out?.transcribed).toBe(false);
+    expect(transcribeCalled).toBe(false);
+    expect(out?.analysis.wentWell).toEqual(["fromRecord"]);
+  });
+
+  it("transcribes an audio-only recording, synthesizes a record, and analyzes it", async () => {
+    // put only a recording (no session row) — simulate an audio file in Drive
+    await db.putRecording("audio-only-1", Buffer.from("fake-webm-bytes"));
+    const out = await db.analyzeRecording("audio-only-1", deps("fromAudio"));
+    expect(out?.transcribed).toBe(true);
+    expect(out?.analysis.wentWell).toEqual(["fromAudio"]);
+    // it should now have persisted a transcript, session, and analysis
+    expect(fake.filesInType("Transcripts")).toContain("audio-only-1.transcript.md");
+    expect(fake.filesInType("Sessions")).toContain("audio-only-1.json");
+    expect(fake.filesInType("Analyses")).toContain("audio-only-1.analysis.json");
+    // and the audio-only id shows up in the listing
+    const ids = (await db.listCalls()).map((c) => c.id);
+    expect(ids).toContain("audio-only-1");
+  });
+
+  it("returns null when neither a record nor a recording exists", async () => {
+    expect(await db.analyzeRecording("ghost", deps("x"))).toBeNull();
   });
 });
