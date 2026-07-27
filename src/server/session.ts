@@ -112,6 +112,9 @@ export class Session {
   #coach = new Coach();
   #objections: Array<{ ts: number; type: string; label: string; doc?: string }> = [];
   #lastObjectionAt: Partial<Record<string, number>> = {};
+  #clfMs: number[] = [];
+  #nudgeMs: number[] = [];
+  #specHits = 0;
   #lastRecord: SessionRecord | null = null;
 
   constructor(send: (msg: ServerToClient) => void, env: SessionEnv) {
@@ -161,6 +164,9 @@ export class Session {
     this.#engine.on("guidance", (e) => {
       if (e.type === "suggestion") {
         this.#suggestions.push({ ts: e.ts, slotId: e.slotId, question: e.question, reason: e.reason, latencyMs: e.latencyMs });
+      } else if (e.type === "metrics") {
+        if (e.kind === "classify") this.#clfMs.push(e.ms);
+        else if (e.kind === "suggestion") { this.#nudgeMs.push(e.ms); if (e.speculative) this.#specHits++; }
       }
       this.#send({ type: "guidance", event: e });
     });
@@ -326,6 +332,12 @@ export class Session {
       talk: this.#talk,
       coaching: this.#coach.metrics(),
       objections: this.#objections,
+      perf: {
+        avgClassifierMs: avg(this.#clfMs),
+        avgNudgeMs: avg(this.#nudgeMs),
+        speculativeHits: this.#specHits,
+        echoesSuppressed: this.#bus.suppressedEchoes,
+      },
     };
   }
 
@@ -388,6 +400,10 @@ export class Session {
     this.#dgProspect?.finish();
     this.#engine?.flush();
   }
+}
+
+function avg(xs: number[]): number {
+  return xs.length ? Math.round(xs.reduce((a, b) => a + b, 0) / xs.length) : 0;
 }
 
 /** Shallow-merge two ConfigOverrides (user override wins), with nested budgets/suggestion merged. */

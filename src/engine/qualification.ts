@@ -88,6 +88,11 @@ export class QualificationEngine extends EventEmitter {
   #suggestionInFlight = false;
   #snoozedUntilMs: Partial<Record<SlotId, number>> = {};
 
+  // speculative pre-generation (instant nudges)
+  #specCache: { slotId: SlotId; question: string; stale: boolean } | null = null;
+  #specInFlight = false;
+  #lastPrewarmAtMs = Number.NEGATIVE_INFINITY;
+
   #pending = new Set<Promise<void>>();
 
   constructor(deps: EngineDeps) {
@@ -106,8 +111,12 @@ export class QualificationEngine extends EventEmitter {
     if (event.tsEnd > this.#latestTs) this.#latestTs = event.tsEnd;
 
     if (event.utteranceEnd) {
-      // A pause. Only prospect pauses are suggestion opportunities.
-      if (event.speaker === "prospect") this.#maybeSuggest();
+      if (event.speaker === "prospect") {
+        // Adaptive cadence: score right after the prospect finishes a thought,
+        // so coverage updates in near-real-time instead of waiting for the tick.
+        this.#maybeClassifyAdaptive();
+        this.#maybeSuggest();
+      }
       return;
     }
 
@@ -116,7 +125,10 @@ export class QualificationEngine extends EventEmitter {
     this.#buffer.push(event);
     this.#lastFinalSpeaker = event.speaker;
     this.#finalsSinceClassify++;
+    // Prospect speech changed the context → any pre-generated question is stale.
+    if (event.speaker === "prospect" && this.#specCache) this.#specCache.stale = true;
     this.#maybeClassify();
+    this.#maybePrewarm();
   }
 
   /** Current slot states (deep copy — callers must not mutate engine state). */
@@ -162,13 +174,28 @@ export class QualificationEngine extends EventEmitter {
     this.#track(this.#runClassify());
   }
 
+  /** Re-classify right after a prospect pause, throttled so we don't spam. */
+  #maybeClassifyAdaptive(): void {
+    if (this.#classifyInFlight || this.#finalsSinceClassify === 0) return;
+    if (this.#latestTs - this.#lastClassifyAtMs < this.#cfg.classifier.adaptiveMinGapSeconds * 1000) return;
+    this.#track(this.#runClassify());
+  }
+
+  /** Transcript window for the classifier: incremental (only new lines + a small overlap). */
+  #classifierWindow(): TranscriptEvent[] {
+    const c = this.#cfg.classifier;
+    if (!c.incremental) return this.#recentWindow(c.windowSeconds);
+    const sinceMs = Math.max(this.#lastClassifyAtMs - c.incrementalOverlapSeconds * 1000, this.#latestTs - c.windowSeconds * 1000);
+    return this.#buffer.filter((e) => e.tsEnd >= sinceMs);
+  }
+
   async #runClassify(): Promise<void> {
     this.#classifyInFlight = true;
     const atMs = this.#latestTs;
     this.#lastClassifyAtMs = atMs;
     this.#finalsSinceClassify = 0;
 
-    const windowEvents = this.#recentWindow(this.#cfg.classifier.windowSeconds);
+    const windowEvents = this.#classifierWindow();
     const windowText = renderWindow(windowEvents);
     const { system, user, prefill } = buildClassifierPrompt(
       this.#slots,
@@ -177,6 +204,7 @@ export class QualificationEngine extends EventEmitter {
       this.#prompts.classifierSystem,
     );
 
+    const started = this.#monotonic();
     let raw = "";
     try {
       raw = await this.#llm.complete({
@@ -185,12 +213,15 @@ export class QualificationEngine extends EventEmitter {
         model: this.#cfg.models.classifier,
         maxTokens: this.#cfg.classifier.maxOutputTokens,
         prefill,
+        cacheSystem: this.#cfg.classifier.cacheSystemPrompt,
       });
     } catch (err) {
       this.#log.log({ event: "classify-error", ts: atMs, error: String(err) });
       this.#classifyInFlight = false;
       return;
     }
+    const classifierMs = this.#monotonic() - started;
+    this.emit("guidance", { type: "metrics", ts: atMs, kind: "classify", ms: classifierMs });
 
     const parsed = extractJson<ClassifierOutput>(raw, prefill);
     const updates = Array.isArray(parsed?.updates) ? parsed!.updates : [];
@@ -199,6 +230,7 @@ export class QualificationEngine extends EventEmitter {
     this.#log.log({
       event: "classify",
       ts: atMs,
+      classifierMs,
       windowLines: windowEvents.length,
       raw,
       updates,
@@ -290,7 +322,38 @@ export class QualificationEngine extends EventEmitter {
 
     // Commit: consume the cooldown now so a drop can't be retried every pause.
     this.#lastSuggestionAtMs = this.#latestTs;
+
+    // Instant path: if we pre-generated a fresh question for this slot during the
+    // prospect's turn, show it immediately (zero perceived latency).
+    const cached = this.#specCache;
+    if (cached && cached.slotId === target.id && !cached.stale && cached.question) {
+      this.#specCache = null;
+      this.#emitSuggestion(target, cached.question, 0, this.#latestTs, false, true);
+      return;
+    }
     this.#track(this.#runQuestionGen(target, this.#latestTs));
+  }
+
+  /** Pre-generate the overdue slot's question during the prospect's turn. */
+  #maybePrewarm(): void {
+    if (!this.#cfg.suggestion.speculative) return;
+    if (this.#specInFlight || this.#suggestionInFlight) return;
+    const nowSec = this.#latestTs / 1000;
+    if (nowSec - this.#lastSuggestionAtMs / 1000 < this.#cfg.suggestion.cooldownSeconds) return;
+    if (this.#latestTs - this.#lastPrewarmAtMs < this.#cfg.suggestion.prewarmMinGapSeconds * 1000) return;
+    const target = this.#mostOverdue(nowSec);
+    if (!target) return;
+    const c = this.#specCache;
+    if (c && c.slotId === target.id && !c.stale) return; // fresh cache already
+    this.#lastPrewarmAtMs = this.#latestTs;
+    this.#track(this.#prewarm(target));
+  }
+
+  async #prewarm(slot: SlotDef): Promise<void> {
+    this.#specInFlight = true;
+    const { question } = await this.#genQuestion(slot);
+    if (question) this.#specCache = { slotId: slot.id, question, stale: false };
+    this.#specInFlight = false;
   }
 
   #mostOverdue(nowSec: number): SlotDef | null {
@@ -323,8 +386,8 @@ export class QualificationEngine extends EventEmitter {
     this.#track(this.#runQuestionGen(slot, this.#latestTs, true));
   }
 
-  async #runQuestionGen(slot: SlotDef, firedAtMs: number, manual = false): Promise<void> {
-    this.#suggestionInFlight = true;
+  /** Pure question generation — no drop rules, no emit. Returns text + latency. */
+  async #genQuestion(slot: SlotDef): Promise<{ question: string; latencyMs: number; error?: string }> {
     const windowText = renderWindow(this.#recentWindow(this.#cfg.suggestion.windowSeconds));
     const { system, user, prefill } = buildQuestionPrompt(
       slot,
@@ -336,9 +399,8 @@ export class QualificationEngine extends EventEmitter {
         persona: this.#prompts.persona,
       },
     );
-    const startedMono = this.#monotonic();
+    const started = this.#monotonic();
     let raw = "";
-    let errored = false;
     try {
       raw = await this.#llm.complete({
         system,
@@ -348,61 +410,49 @@ export class QualificationEngine extends EventEmitter {
         prefill,
       });
     } catch (err) {
-      errored = true;
-      this.#log.log({ event: "suggest-error", ts: firedAtMs, slot: slot.id, error: String(err) });
+      return { question: "", latencyMs: this.#monotonic() - started, error: String(err) };
     }
-    const latencyMs = this.#monotonic() - startedMono;
-
-    // Phase 3 latency rule: a late suggestion is worse than none.
-    if (errored) {
-      this.#emitDropped(slot.id, "generation-error", latencyMs, firedAtMs);
-      this.#suggestionInFlight = false;
-      return;
-    }
-    if (latencyMs > this.#cfg.suggestion.dropIfExceedsMs) {
-      this.#log.log({
-        event: "suggest-drop",
-        ts: firedAtMs,
-        slot: slot.id,
-        latencyMs,
-        reason: "latency-exceeded",
-      });
-      this.#emitDropped(slot.id, "latency-exceeded", latencyMs, firedAtMs);
-      this.#suggestionInFlight = false;
-      return;
-    }
-
+    const latencyMs = this.#monotonic() - started;
     const parsed = extractJson<QuestionOutput>(raw, prefill);
     let question = (parsed?.question ?? "").trim();
     if (!question) question = fallbackQuestion(raw);
     question = clampWords(question, this.#cfg.suggestion.maxWords);
+    return { question, latencyMs };
+  }
 
-    if (!question) {
+  async #runQuestionGen(slot: SlotDef, firedAtMs: number, manual = false): Promise<void> {
+    this.#suggestionInFlight = true;
+    const { question, latencyMs, error } = await this.#genQuestion(slot);
+
+    // Phase 3 latency rule: a late suggestion is worse than none.
+    if (error) {
+      this.#log.log({ event: "suggest-error", ts: firedAtMs, slot: slot.id, error });
+      this.#emitDropped(slot.id, "generation-error", latencyMs, firedAtMs);
+    } else if (latencyMs > this.#cfg.suggestion.dropIfExceedsMs) {
+      this.#log.log({ event: "suggest-drop", ts: firedAtMs, slot: slot.id, latencyMs, reason: "latency-exceeded" });
+      this.#emitDropped(slot.id, "latency-exceeded", latencyMs, firedAtMs);
+    } else if (!question) {
       this.#emitDropped(slot.id, "empty-generation", latencyMs, firedAtMs);
-      this.#suggestionInFlight = false;
-      return;
+    } else {
+      this.#emitSuggestion(slot, question, latencyMs, firedAtMs, manual, false);
     }
+    this.#suggestionInFlight = false;
+  }
 
+  #emitSuggestion(
+    slot: SlotDef,
+    question: string,
+    latencyMs: number,
+    ts: number,
+    manual: boolean,
+    speculative: boolean,
+  ): void {
     const reason = manual
       ? `manual — asked for ${slot.label}`
       : `${slot.label} overdue (>${this.#cfg.budgets[slot.id]?.escalateBy}s), prospect paused`;
-    this.#log.log({
-      event: "suggest",
-      ts: firedAtMs,
-      slot: slot.id,
-      question,
-      latencyMs,
-      raw,
-    });
-    this.emit("guidance", {
-      type: "suggestion",
-      ts: firedAtMs,
-      slotId: slot.id,
-      question,
-      reason,
-      latencyMs,
-    });
-    this.#suggestionInFlight = false;
+    this.#log.log({ event: "suggest", ts, slot: slot.id, question, latencyMs, speculative });
+    this.emit("guidance", { type: "suggestion", ts, slotId: slot.id, question, reason, latencyMs });
+    this.emit("guidance", { type: "metrics", ts, kind: "suggestion", ms: latencyMs, speculative });
   }
 
   #emitDropped(

@@ -60,6 +60,15 @@ export function buildSummaryMarkdown(r: SessionRecord): string {
     lines.push("");
   }
 
+  if (r.perf) {
+    lines.push(`## Real-time performance`);
+    lines.push("");
+    lines.push(`- Avg classifier latency: ${r.perf.avgClassifierMs} ms`);
+    lines.push(`- Avg nudge latency: ${r.perf.avgNudgeMs} ms (${r.perf.speculativeHits} served instantly)`);
+    if (r.perf.echoesSuppressed) lines.push(`- Rep-echo lines suppressed: ${r.perf.echoesSuppressed}`);
+    lines.push("");
+  }
+
   if (r.objections && r.objections.length) {
     lines.push(`## Objections raised (${r.objections.length})`);
     lines.push("");

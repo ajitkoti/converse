@@ -60,11 +60,37 @@ export declare interface TranscriptBus {
   ): boolean;
 }
 
+export interface TranscriptBusOptions {
+  /**
+   * Suppress prospect-channel lines that echo a recent rep line (mic bleeding
+   * into system audio). Prevents the rep's own words from being counted as
+   * prospect evidence. Default true.
+   */
+  echoGuard?: boolean;
+}
+
+const ECHO_WINDOW_MS = 2500;
+const ECHO_MIN_LEN = 8;
+
 export class TranscriptBus extends EventEmitter {
   /** All FINAL content events, in arrival order. Interims are not buffered. */
   #buffer: TranscriptEvent[] = [];
   /** Latest observed call-time in ms (max tsEnd across everything seen). */
   #latestTs = 0;
+
+  #echoGuard: boolean;
+  #recentRep: Array<{ norm: string; tsEnd: number }> = [];
+  #suppressedEchoes = 0;
+
+  constructor(opts: TranscriptBusOptions = {}) {
+    super();
+    this.#echoGuard = opts.echoGuard !== false;
+  }
+
+  /** How many prospect lines were dropped as rep echo (telemetry). */
+  get suppressedEchoes(): number {
+    return this.#suppressedEchoes;
+  }
 
   /**
    * Ingest one raw Deepgram message tagged with the speaker of its connection.
@@ -110,15 +136,49 @@ export class TranscriptBus extends EventEmitter {
       isFinal: !!m.is_final,
       utteranceEnd: false,
     };
-    if (event.isFinal) this.#buffer.push(event);
-    this.#emit(event);
+    this.#handleContent(event);
   }
 
   /** Directly emit a pre-normalized event (used by fixtures/tests). */
   push(event: TranscriptEvent): void {
+    if (event.utteranceEnd) {
+      this.#advanceClock(event.tsEnd);
+      this.#emit(event);
+      return;
+    }
+    this.#handleContent(event);
+  }
+
+  /** Shared path for content events: echo guard + buffering + emit. */
+  #handleContent(event: TranscriptEvent): void {
     this.#advanceClock(event.tsEnd);
-    if (event.isFinal && !event.utteranceEnd && event.text) this.#buffer.push(event);
+    if (event.isFinal && event.text) {
+      if (event.speaker === "rep") {
+        this.#trackRep(event);
+      } else if (this.#echoGuard && this.#isRepEcho(event)) {
+        this.#suppressedEchoes++;
+        return; // drop the echoed prospect line entirely
+      }
+      this.#buffer.push(event);
+    }
     this.#emit(event);
+  }
+
+  #trackRep(event: TranscriptEvent): void {
+    this.#recentRep.push({ norm: echoNormalize(event.text), tsEnd: event.tsEnd });
+    // keep only recent
+    const cutoff = event.tsEnd - ECHO_WINDOW_MS * 2;
+    this.#recentRep = this.#recentRep.filter((r) => r.tsEnd >= cutoff);
+  }
+
+  #isRepEcho(event: TranscriptEvent): boolean {
+    const norm = echoNormalize(event.text);
+    if (norm.length < ECHO_MIN_LEN) return false;
+    for (const rep of this.#recentRep) {
+      if (Math.abs(event.tsStart - rep.tsEnd) > ECHO_WINDOW_MS && Math.abs(event.tsEnd - rep.tsEnd) > ECHO_WINDOW_MS) continue;
+      if (norm === rep.norm || rep.norm.includes(norm) || norm.includes(rep.norm)) return true;
+    }
+    return false;
   }
 
   #emit(event: TranscriptEvent): void {
@@ -159,6 +219,13 @@ export class TranscriptBus extends EventEmitter {
       .map((e) => `${e.speaker === "rep" ? "REP" : "PROSPECT"}: ${e.text}`)
       .join("\n");
   }
+}
+
+function echoNormalize(s: string): string {
+  return s
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
 }
 
 /** Deepgram timestamps are seconds; convert to ms since call start. */

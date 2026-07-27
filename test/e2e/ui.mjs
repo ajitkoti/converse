@@ -61,6 +61,8 @@ try {
   check("call timer advances", true);
   await page.waitForFunction(() => /wpm/.test(document.getElementById("coach-stats")?.textContent || ""), { timeout: 20000 });
   check("live coaching stats (questions + wpm) show", true);
+  await page.waitForFunction(() => /clf|nudge/.test(document.getElementById("perf")?.textContent || ""), { timeout: 20000 });
+  check("live perf HUD (classifier/nudge latency) shows", true);
   await page.waitForFunction(() => document.querySelector("#rail .slot.covered"), { timeout: 25000 });
   check("a slot turns green (covered) live", true);
 
@@ -88,6 +90,7 @@ try {
   check("summary shows talk ratio", (await page.locator("#summary-talk .tm-bar").count()) === 1);
   check("summary shows notes", (await page.textContent("#summary-notes"))?.includes("SOC2"));
   check("summary shows coaching tiles", (await page.locator("#summary-coaching .coach-tile").count()) >= 3);
+  check("summary shows perf latency tiles", (await page.textContent("#summary-coaching"))?.includes("latency"));
   check("summary has export buttons (Slack/Email/CRM)", (await page.locator("#export-slack, #export-email, #copy-crm").count()) === 3);
   await page.screenshot({ path: path.join(SHOTS, "3-summary.png") });
 

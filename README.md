@@ -144,7 +144,7 @@ test/                  29 offline tests (engine + server modules)
 ## Developer commands
 
 ```bash
-npm test            # 40 unit/integration tests, no network, no audio hardware
+npm test            # 49 unit/integration tests, no network, no audio hardware
 npm run typecheck
 npm run e2e         # full browser E2E (start `npm start` first) — drives a demo call end to end
 npm run replay                 # replay good-call in the terminal (offline classifier)

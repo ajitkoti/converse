@@ -77,4 +77,27 @@ describe("TranscriptBus — Phase 1", () => {
     expect(rendered).toContain("REP:");
     expect(rendered).toContain("PROSPECT:");
   });
+
+  it("suppresses prospect lines that echo a recent rep line (echo guard)", () => {
+    const bus = new TranscriptBus();
+    const emitted: TranscriptEvent[] = [];
+    bus.on("transcript", (e) => emitted.push(e));
+    const rep = { speaker: "rep" as const, text: "what is your budget for this project", tsStart: 1000, tsEnd: 4000, isFinal: true, utteranceEnd: false };
+    const echo = { speaker: "prospect" as const, text: "what is your budget for this project", tsStart: 4200, tsEnd: 6000, isFinal: true, utteranceEnd: false };
+    const real = { speaker: "prospect" as const, text: "we spend about forty thousand a quarter", tsStart: 7000, tsEnd: 10000, isFinal: true, utteranceEnd: false };
+    bus.push(rep);
+    bus.push(echo); // rep's words bleeding into the prospect channel
+    bus.push(real);
+    expect(bus.suppressedEchoes).toBe(1);
+    const prospectFinals = bus.fullTranscript().filter((e) => e.speaker === "prospect");
+    expect(prospectFinals.map((e) => e.text)).toEqual(["we spend about forty thousand a quarter"]);
+  });
+
+  it("does not suppress when echo guard is disabled", () => {
+    const bus = new TranscriptBus({ echoGuard: false });
+    bus.push({ speaker: "rep", text: "what is your budget for this project", tsStart: 1000, tsEnd: 4000, isFinal: true, utteranceEnd: false });
+    bus.push({ speaker: "prospect", text: "what is your budget for this project", tsStart: 4200, tsEnd: 6000, isFinal: true, utteranceEnd: false });
+    expect(bus.suppressedEchoes).toBe(0);
+    expect(bus.fullTranscript().filter((e) => e.speaker === "prospect").length).toBe(1);
+  });
 });
