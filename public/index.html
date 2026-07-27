@@ -14,6 +14,7 @@
         <button class="nav-link active" data-view="home">Home</button>
         <button class="nav-link" data-view="precall">Pre-call</button>
         <button class="nav-link" data-view="dashboard">Dashboard</button>
+        <button class="nav-link" data-view="scorecard">Scorecard</button>
         <button class="nav-link" data-view="history">History</button>
         <button class="nav-link" data-view="context">Context</button>
         <button class="nav-link" data-view="settings">Settings</button>
@@ -85,6 +86,14 @@
         </div>
       </section>
 
+      <!-- SCORECARD -->
+      <section id="view-scorecard" class="view hidden">
+        <h2>Scorecard &amp; skill index</h2>
+        <p class="sub">Your selling skills rolled up across every saved call — discovery, listening, questioning, and objection handling — with an overall grade, a per-call review, and a trend. Tag calls with a rep name in Settings to compare across a team.</p>
+        <div id="scorecard-team" class="scorecard-team"></div>
+        <div id="scorecard-reps" class="scorecard-reps"></div>
+      </section>
+
       <!-- HISTORY -->
       <section id="view-history" class="view hidden">
         <div class="summary-head"><h2>Past sessions</h2>
@@ -135,6 +144,7 @@
           <label class="field"><span>Framework (live calls) <b class="qm" data-help="Which framework to track live: MEDDPICC (default), BANT, or SPICED. The rail and time budgets adapt. Demos always use MEDDPICC.">?</b></span><select id="set-framework"></select></label>
           <label class="field"><span>Slack webhook URL <b class="qm" data-help="An incoming-webhook URL from Slack. With it set, the summary's 'Slack' button posts the recap to that channel.">?</b></span><input id="set-slack" placeholder="https://hooks.slack.com/services/… (optional)" autocomplete="off" /></label>
           <label class="field"><span>Competitors <b class="qm" data-help="Comma-separated competitor names. When the prospect names one on a live call, a battlecard card pops up. Names from your battlecard filenames are added automatically.">?</b></span><input id="set-competitors" placeholder="e.g. Workday, Salesforce, Gong (comma-separated)" autocomplete="off" /></label>
+          <label class="field"><span>Rep name <b class="qm" data-help="Stamped on each saved call for the Scorecard. Set different names on different machines to build a team view.">?</b></span><input id="set-repname" placeholder="e.g. You, or a rep's name" autocomplete="off" /></label>
           <label class="check"><input id="set-autosave" type="checkbox" /> <span>Auto-save every session locally <b class="qm" data-help="Keep a copy of every finished call in data/sessions/ (JSON + summary + transcript). Turn off to keep nothing on disk.">?</b></span></label>
           <label class="check"><input id="set-usecontext" type="checkbox" /> <span>Inject context docs into suggestions <b class="qm" data-help="Feed your Context docs (battlecards, product) into the question generator so nudges are specific to your product.">?</b></span></label>
         </div>
@@ -232,6 +242,14 @@
               <li><b>Too few questions</b> — get them talking with an open question.</li>
             </ul>
             <p>The summary shows your talk ratio, questions asked, pace, and longest monologue (amber = worth improving).</p>
+          </div>
+        </details>
+
+        <details class="help-card">
+          <summary>🏅 Scorecard &amp; skill index</summary>
+          <div class="help-body">
+            <p><b>Scorecard</b> rolls up every saved call into a skill profile: <b>Discovery &amp; coverage</b> (how much you qualify), <b>Listening</b> (talk ratio — best near a 45% rep share), <b>Questioning</b> (8+ good questions is strong), and <b>Objection handling</b> (share of objections you had a battlecard ready for). Each rep gets an overall <b>grade</b>, a <b>trend</b>, and a clickable <b>recent-calls</b> list (jumps to that call's summary).</p>
+            <p>Set <b>Settings → Rep name</b> to tag your calls. Use different names (e.g. per teammate) to get a <b>team roll-up</b> across everyone. It's all computed from your saved calls — no extra tracking.</p>
           </div>
         </details>
 

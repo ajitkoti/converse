@@ -311,6 +311,10 @@ the engine, none of them imported by it:
   re-saved into the record, and rendered into the summary Markdown + exports.
   Real (non-offline) LLM calls are counted per session (`perf.llmCalls`) and
   aggregated on the dashboard.
+- **Scorecard** (`scorecard.ts`): `GET /api/scorecard` rolls saved calls up per
+  rep (`record.rep`, stamped from Settings) into four deterministic skill scores
+  (discovery, listening, questioning, objection handling), an overall grade, a
+  per-call review list, and a trend — plus a team roll-up when >1 rep is present.
 - **Pre-call brief** (`precall.ts`, `llm-factory.ts`): `GET /api/precall-brief`
   builds a briefing from saved history + the active framework — last-call recap,
   agenda (open gaps first), likely objections (tallied across history), opener.

@@ -123,6 +123,16 @@ try {
   check("pre-call brief recaps the last call", (await page.textContent("#precall-result"))?.includes("Last call recap"));
   await page.screenshot({ path: path.join(SHOTS, "5-precall.png") });
 
+  // 8c. Scorecard (rolls up the recorded calls)
+  await page.click('.nav-link[data-view="scorecard"]');
+  await page.waitForSelector("#view-scorecard:not(.hidden)");
+  await page.waitForFunction(() => document.querySelector("#scorecard-reps .sc-card"), null, { timeout: 10000 });
+  check("scorecard shows a rep card", (await page.locator("#scorecard-reps .sc-card").count()) >= 1);
+  check("scorecard shows 4 skill bars", (await page.locator("#scorecard-reps .sc-card").first().locator(".sc-skill").count()) === 4);
+  check("scorecard shows an overall grade", (await page.locator("#scorecard-reps .sc-grade").count()) >= 1);
+  check("scorecard lists recent calls", (await page.locator("#scorecard-reps .sc-review-row").count()) >= 1);
+  await page.screenshot({ path: path.join(SHOTS, "6-scorecard.png") });
+
   // 9. History + search + reopen
   await page.click('.nav-link[data-view="history"]');
   await page.waitForSelector("#history-list .rec-card");

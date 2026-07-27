@@ -55,6 +55,10 @@ shows up under **History**.
   bridging-question card at natural pauses, elapsed timer, live caption.
 - **Post-call summary + history** — coverage with evidence quotes and the nudges
   given; browse and reopen past calls.
+- **Scorecard & skill index** — rolls up every saved call into a skill profile
+  (discovery/coverage, listening, questioning, objection handling) with an overall
+  grade, a trend, and a per-call review. Tag calls with a rep name (Settings) to
+  get a team roll-up.
 - **Pre-call brief** — before you dial, a one-screen prep: opening line, last-call
   recap (coverage, open gaps, objections, competitors named, notes), a suggested
   agenda (open gaps first), and the objections you're most likely to hit. Built

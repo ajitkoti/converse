@@ -48,6 +48,7 @@ function showView(name) {
   if (name === "settings") fillSettings();
   if (name === "dashboard") loadDashboard();
   if (name === "precall") initPrecall();
+  if (name === "scorecard") loadScorecard();
 }
 function showApp() { nav.classList.remove("hidden"); mainEl.classList.remove("hidden"); overlay.classList.add("hidden"); }
 function showOverlayScreen() { nav.classList.add("hidden"); mainEl.classList.add("hidden"); overlay.classList.remove("hidden"); }
@@ -557,6 +558,42 @@ $("history-search").addEventListener("input", (e) => {
   renderHistoryList(historyCache.filter((s) => (new Date(s.startedAt).toLocaleString() + " " + s.mode).toLowerCase().includes(q)));
 });
 
+// ---------- Scorecard ----------
+async function loadScorecard() {
+  const report = await api.get("/api/scorecard");
+  if (!report.reps || !report.reps.length) {
+    $("scorecard-team").innerHTML = "";
+    $("scorecard-reps").innerHTML = `<div class="meta-dim">No saved calls yet — run a demo or a live call, then come back.</div>`;
+    return;
+  }
+  $("scorecard-team").innerHTML = report.team
+    ? `<div class="sc-team"><b>Team</b> · ${report.team.reps} reps · ${report.team.calls} calls · avg coverage ${report.team.avgCoverage}% · avg score ${report.team.avgOverall}</div>`
+    : "";
+  $("scorecard-reps").innerHTML = report.reps.map(repCardHtml).join("");
+  for (const row of $("scorecard-reps").querySelectorAll(".sc-review-row")) {
+    row.addEventListener("click", async () => {
+      const rec = await api.get(`/api/session?id=${encodeURIComponent(row.dataset.id)}`);
+      if (rec && rec.id) { lastRecord = rec; renderSummary(rec, { live: false, saved: true }); showView("summary"); }
+    });
+  }
+}
+function gradeClass(g) { return "g" + g.toLowerCase(); }
+function repCardHtml(r) {
+  const skills = r.skills.map((s) =>
+    `<div class="sc-skill"><div class="sc-skill-top"><span>${escapeHtml(s.label)}</span><span class="sc-score">${s.score}</span></div>
+      <div class="sc-track" title="${escapeHtml(s.hint)}"><i style="width:${s.score}%"></i></div></div>`).join("");
+  const reviews = r.recent.map((c) =>
+    `<div class="sc-review-row" data-id="${c.id}"><span class="when">${new Date(c.startedAt).toLocaleDateString()}</span>
+      <span class="sc-cov">${c.coveragePct}% cov</span><span class="sc-pill ${gradeClass(c.grade)}">${c.grade}</span></div>`).join("");
+  return `<div class="sc-card">
+    <div class="sc-head"><div><b class="sc-rep">${escapeHtml(r.rep)}</b> <span class="meta-dim">${r.calls} call${r.calls > 1 ? "s" : ""}</span></div>
+      <div class="sc-overall"><span class="sc-grade ${gradeClass(r.grade)}">${r.grade}</span><span class="sc-overall-n">${r.overall}</span></div></div>
+    <div class="sc-skills">${skills}</div>
+    <div class="sc-spark">${sparkline(r.trend)}</div>
+    <div class="sc-reviews"><div class="meta-dim" style="margin-bottom:6px">Recent calls</div>${reviews}</div>
+  </div>`;
+}
+
 // ---------- Pre-call brief ----------
 let precallInit = false;
 function initPrecall() {
@@ -674,6 +711,7 @@ function fillSettings() {
   fwSel.value = s.framework || "meddpicc";
   $("set-slack").value = s.slackWebhookUrl || "";
   $("set-competitors").value = (s.competitors || []).join(", ");
+  $("set-repname").value = s.repName || "";
 }
 async function saveSettings() {
   const patch = {
@@ -687,6 +725,7 @@ async function saveSettings() {
     framework: $("set-framework").value,
     slackWebhookUrl: $("set-slack").value.trim() || undefined,
     competitors: $("set-competitors").value.split(",").map((c) => c.trim()).filter(Boolean),
+    repName: $("set-repname").value.trim() || undefined,
     config: { models: { classifier: $("set-model-classifier").value.trim() || undefined, questionGen: $("set-model-question").value.trim() || undefined }, suggestion: $("set-cooldown").value ? { cooldownSeconds: Number($("set-cooldown").value) } : undefined },
   };
   const dg = $("set-deepgram-key").value.trim(); const an = $("set-anthropic-key").value.trim(); const oa = $("set-openai-key").value.trim();

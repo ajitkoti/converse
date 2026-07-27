@@ -37,6 +37,8 @@ export interface UserSettings {
   slackWebhookUrl?: string;
   /** extra competitor names for in-call competitive-intel surfacing */
   competitors?: string[];
+  /** rep name stamped on saved calls, for the team scorecard roll-up */
+  repName?: string;
 }
 
 export class Settings {

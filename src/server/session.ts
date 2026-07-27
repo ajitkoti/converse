@@ -374,6 +374,7 @@ export class Session {
       mode: this.#mode,
       fixture: this.#fixture,
       persona: this.#env.settings.get().persona,
+      rep: this.#env.settings.get().repName?.trim() || "You",
       framework: this.#mode === "live" ? this.#env.settings.get().framework || "meddpicc" : "meddpicc",
       durationMs: this.#engine?.callTimeMs ?? 0,
       slotDefs: this.#slotDefs,

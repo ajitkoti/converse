@@ -29,6 +29,8 @@ export interface SessionRecord {
   fixture?: string;
   persona?: string;
   framework?: string;
+  /** rep who ran the call (for the team scorecard); defaults to "You" */
+  rep?: string;
   durationMs: number;
   slotDefs: SlotDefWire[];
   slots: SlotStates;
