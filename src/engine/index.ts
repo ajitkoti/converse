@@ -29,6 +29,7 @@ export type { EngineConfig, SlotDef, SlotBudget, ConfigOverride } from "./config
 export type { LlmClient, LlmRequest } from "./llm.js";
 export { extractJson } from "./llm.js";
 export { AnthropicLlmClient } from "./anthropic-client.js";
+export { OpenAiLlmClient } from "./openai-client.js";
 
 export { nullLogger, MemoryLogger, FileLogger } from "./logger.js";
 export type { JsonlLogger, LogRecord } from "./logger.js";

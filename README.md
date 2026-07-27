@@ -99,9 +99,11 @@ target folder with the service-account email.)
 ### Go live on a real call
 
 1. `cp .env.example .env` and add your `DEEPGRAM_API_KEY`
-   (from [console.deepgram.com](https://console.deepgram.com)). Optionally add
-   `ANTHROPIC_API_KEY` so suggestions use `claude-haiku-4-5` instead of the
-   offline engine.
+   (from [console.deepgram.com](https://console.deepgram.com)). For AI
+   suggestions add **either** `ANTHROPIC_API_KEY` (Claude) **or**
+   `OPENAI_API_KEY` (GPT) and pick the provider in **Settings → AI provider** —
+   or enter the key directly in Settings. Without one, live still transcribes and
+   uses the offline engine.
 2. `npm start`, open the page, click **Go live**.
 3. Allow the **microphone** (that's you, the rep), then in the screen-share
    picker choose your **meeting tab and tick "Share tab audio"** (that's the

@@ -16,7 +16,7 @@ import { Session, type ServerToClient } from "./session.js";
 import { Settings, type UserSettings } from "./settings.js";
 import { ContextLibrary } from "./context.js";
 import { SessionStore } from "./store.js";
-import { DriveExporter } from "./gdrive.js";
+import { DriveExporter, buildOAuthClient, oauthClientConfigured, DRIVE_SCOPES, TOKEN_PATH } from "./gdrive.js";
 import { frameworkList } from "./frameworks.js";
 import { buildSummaryMarkdown, buildTranscriptMarkdown } from "./summary.js";
 import type { SlotId } from "../engine/types.js";
@@ -32,6 +32,7 @@ export interface ServerOptions {
   env?: {
     DEEPGRAM_API_KEY?: string;
     ANTHROPIC_API_KEY?: string;
+    OPENAI_API_KEY?: string;
     DEEPGRAM_MODEL?: string;
     GDRIVE_FOLDER_ID?: string;
   };
@@ -55,8 +56,13 @@ const MIME: Record<string, string> = {
 
 /** Keys must never be sent to the browser — expose only "is it set?" flags. */
 function publicSettings(s: UserSettings): Record<string, unknown> {
-  const { deepgramApiKey, anthropicApiKey, ...rest } = s;
-  return { ...rest, hasDeepgramKey: Boolean(deepgramApiKey), hasAnthropicKey: Boolean(anthropicApiKey) };
+  const { deepgramApiKey, anthropicApiKey, openaiApiKey, ...rest } = s;
+  return {
+    ...rest,
+    hasDeepgramKey: Boolean(deepgramApiKey),
+    hasAnthropicKey: Boolean(anthropicApiKey),
+    hasOpenaiKey: Boolean(openaiApiKey),
+  };
 }
 
 export async function startServer(opts: ServerOptions): Promise<RunningServer> {
@@ -71,7 +77,9 @@ export async function startServer(opts: ServerOptions): Promise<RunningServer> {
 
   const server = http.createServer(async (req, res) => {
     const url = new URL(req.url ?? "/", "http://localhost");
-    if (url.pathname.startsWith("/api/")) return void (await handleApi(req, res, url));
+    if (url.pathname.startsWith("/api/") || url.pathname === "/oauth2callback") {
+      return void (await handleApi(req, res, url));
+    }
     serveStatic(url.pathname, res);
   });
 
@@ -97,11 +105,41 @@ export async function startServer(opts: ServerOptions): Promise<RunningServer> {
         return json(200, {
           settings: publicSettings(settings.get()),
           context: context.list(),
-          drive: drive.status(),
+          drive: { ...drive.status(), canWebConnect: oauthClientConfigured() },
           frameworks: frameworkList(),
           defaults: { classifierPrompt: CLASSIFIER_SYSTEM, questionPrompt: QUESTION_SYSTEM },
         });
       }
+      // ---- Google Drive web sign-in ----
+      if (req.method === "GET" && p === "/api/drive/connect") {
+        if (!oauthClientConfigured()) {
+          return json(400, {
+            error: "No OAuth client configured. Set GOOGLE_OAUTH_CLIENT in .env to a Google 'Desktop app' OAuth client JSON, and add this app's /oauth2callback as an authorized redirect URI.",
+          });
+        }
+        const redirect = callbackUrl(req);
+        const oauth = buildOAuthClient(process.env.GOOGLE_OAUTH_CLIENT!, redirect);
+        const url = oauth.generateAuthUrl({ access_type: "offline", scope: DRIVE_SCOPES, prompt: "consent" });
+        return json(200, { url });
+      }
+      if (req.method === "GET" && p === "/oauth2callback") {
+        const code = url.searchParams.get("code");
+        if (!code || !oauthClientConfigured()) {
+          res.writeHead(400, { "Content-Type": "text/html" }).end("Missing code or OAuth client.");
+          return;
+        }
+        try {
+          const oauth = buildOAuthClient(process.env.GOOGLE_OAUTH_CLIENT!, callbackUrl(req));
+          const { tokens } = await oauth.getToken(code);
+          fs.writeFileSync(TOKEN_PATH, JSON.stringify(tokens, null, 2));
+          drive.reload();
+          res.writeHead(302, { Location: "/?drive=connected" }).end();
+        } catch (err) {
+          res.writeHead(500, { "Content-Type": "text/html" }).end(`Drive connect failed: ${String(err)}`);
+        }
+        return;
+      }
+
       if (req.method === "GET" && p === "/api/history") return json(200, { sessions: store.list() });
       if (req.method === "GET" && p === "/api/analytics") return json(200, store.analytics());
       if (req.method === "POST" && p === "/api/session/delete") {
@@ -176,6 +214,8 @@ export async function startServer(opts: ServerOptions): Promise<RunningServer> {
     const session = new Session(send, {
       deepgramApiKey: s.deepgramApiKey || env.DEEPGRAM_API_KEY,
       anthropicApiKey: s.anthropicApiKey || env.ANTHROPIC_API_KEY,
+      openaiApiKey: s.openaiApiKey || env.OPENAI_API_KEY,
+      aiProvider: s.aiProvider,
       deepgramModel: env.DEEPGRAM_MODEL,
       driveRootFolderId: s.driveFolderId || env.GDRIVE_FOLDER_ID,
       logger,
@@ -259,6 +299,12 @@ function listen(server: http.Server, port: number): Promise<number> {
     };
     tryListen();
   });
+}
+
+/** The app's own OAuth callback URL, derived from the request host (handles the port). */
+function callbackUrl(req: http.IncomingMessage): string {
+  const host = req.headers.host ?? "localhost:5173";
+  return `http://${host}/oauth2callback`;
 }
 
 function readJson<T = Record<string, unknown>>(req: http.IncomingMessage): Promise<T> {

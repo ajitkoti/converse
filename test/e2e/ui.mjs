@@ -38,6 +38,8 @@ try {
   await page.waitForFunction(() => document.querySelectorAll("#set-framework option").length >= 3);
   const fwOpts = await page.locator("#set-framework option").count();
   check("framework selector populated (MEDDPICC/BANT/SPICED)", fwOpts >= 3, `${fwOpts} options`);
+  check("AI provider selector present (Anthropic + OpenAI)", (await page.locator("#set-provider option").count()) === 2);
+  check("OpenAI key field + Drive connect button present", (await page.locator("#set-openai-key, #drive-connect").count()) === 2);
   await page.fill("#set-speed", "20");
   await page.click("#settings-save");
   await page.waitForFunction(() => document.getElementById("settings-saved")?.textContent?.includes("Saved"));

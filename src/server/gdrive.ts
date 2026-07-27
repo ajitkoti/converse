@@ -32,12 +32,18 @@ export interface DriveStatus {
   reason?: string;
 }
 
-export function buildOAuthClient(clientJsonPath: string): OAuth2Client {
+export function buildOAuthClient(clientJsonPath: string, redirectOverride?: string): OAuth2Client {
   const raw = JSON.parse(fs.readFileSync(clientJsonPath, "utf8"));
   const creds = raw.installed ?? raw.web;
   if (!creds) throw new Error("OAuth client json missing 'installed'/'web' block");
-  const redirect = creds.redirect_uris?.[0] ?? "http://localhost:5273/oauth2callback";
+  const redirect = redirectOverride ?? creds.redirect_uris?.[0] ?? "http://localhost:5273/oauth2callback";
   return new google.auth.OAuth2(creds.client_id, creds.client_secret, redirect);
+}
+
+/** Is an OAuth client configured (so the web sign-in flow is possible)? */
+export function oauthClientConfigured(): boolean {
+  const p = process.env.GOOGLE_OAUTH_CLIENT;
+  return !!p && fs.existsSync(p);
 }
 
 export class DriveExporter {
@@ -45,6 +51,11 @@ export class DriveExporter {
   #status: DriveStatus = { connected: false, method: "none" };
 
   constructor() {
+    this.#init();
+  }
+
+  /** Re-read credentials/token (e.g. after the web sign-in flow saves a token). */
+  reload(): void {
     this.#init();
   }
 
