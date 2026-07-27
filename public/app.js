@@ -110,6 +110,9 @@ function handle(msg) {
     case "transcript": onTranscript(msg.event); break;
     case "guidance": onGuidance(msg.event); break;
     case "summary": lastRecord = msg.record; renderSummary(msg.record, { live: true, saved: msg.saved }); break;
+    case "analysis":
+      if (lastRecord && lastRecord.id === msg.id) { lastRecord.analysis = msg.analysis; renderAnalysis(msg.analysis); }
+      break;
     case "drive": renderDriveResult(msg); break;
     case "coaching": toast("🎯 " + msg.signal.message, "warn"); break;
     case "objection": onObjection(msg); break;
@@ -362,6 +365,10 @@ function renderSummary(rec, opts = {}) {
     ] : []),
   ].join("");
 
+  if (rec.analysis) renderAnalysis(rec.analysis);
+  else if (opts.live) $("summary-analysis").innerHTML = `<div class="ai-debrief pending"><h3>🧠 AI deal debrief</h3><div class="ai-generating"><span class="spin"></span> Analyzing the call — this takes a few seconds…</div></div>`;
+  else $("summary-analysis").innerHTML = "";
+
   $("summary-objections").innerHTML = rec.objections && rec.objections.length
     ? `<h3>Objections raised (${rec.objections.length})</h3>` + rec.objections.map((o) =>
         `<div class="obj-row"><span class="when">${fmt(o.ts)}</span><b>${escapeHtml(o.label)}</b>${o.doc ? ` — battlecard: ${escapeHtml(o.doc)}` : ""}</div>`).join("")
@@ -396,6 +403,32 @@ function renderSummary(rec, opts = {}) {
   if (!opts.saved && opts.live) toast("Auto-save is off — downloads use the saved record.", "warn");
 }
 function coachTile(n, l, warn) { return `<div class="coach-tile ${warn ? "warn" : ""}"><div class="n">${n}</div><div class="l">${l}</div></div>`; }
+function renderAnalysis(a) {
+  if (!a) { $("summary-analysis").innerHTML = ""; return; }
+  const mood = { positive: ["🟢", "positive"], neutral: ["🟡", "neutral"], negative: ["🔴", "negative"] }[a.sentiment.overall] || ["🟡", "neutral"];
+  const list = (title, cls, xs) => (xs && xs.length)
+    ? `<div class="ai-col ${cls}"><h4>${title}</h4><ul>${xs.map((x) => `<li>${escapeHtml(x)}</li>`).join("")}</ul></div>` : "";
+  const email = a.followUpEmail && a.followUpEmail.trim()
+    ? `<div class="ai-email"><div class="ai-email-head"><h4>✉️ Suggested follow-up email</h4><button id="ai-copy-email" class="btn small ghost">Copy</button></div><pre>${escapeHtml(a.followUpEmail.trim())}</pre></div>` : "";
+  $("summary-analysis").innerHTML =
+    `<div class="ai-debrief"><div class="ai-head"><h3>🧠 AI deal debrief</h3>` +
+    `<span class="ai-sentiment ${a.sentiment.overall}">${mood[0]} ${mood[1]}</span></div>` +
+    (a.sentiment.rationale ? `<div class="ai-rationale">${escapeHtml(a.sentiment.rationale)}</div>` : "") +
+    `<div class="ai-budget"><b>Budget / economics:</b> ${escapeHtml(a.budget || "Not established.")}</div>` +
+    `<div class="ai-grid">` +
+      list("✅ What went well", "good", a.wentWell) +
+      list("⚠️ What didn't", "bad", a.didntGoWell) +
+      list("📈 What to improve", "improve", a.improvements) +
+      list("🕳️ Missed opportunities", "missed", a.missedOpportunities) +
+      list("🚩 Red flags", "flags", a.redFlags) +
+      list("🎯 Key decision points", "decisions", a.keyDecisions) +
+    `</div>` + email + `</div>`;
+  const copyBtn = $("ai-copy-email");
+  if (copyBtn) copyBtn.onclick = async () => {
+    try { await navigator.clipboard.writeText(a.followUpEmail.trim()); toast("Follow-up email copied", "info"); }
+    catch { toast("Copy failed", "warn"); }
+  };
+}
 function renderExportResult(msg) {
   $("export-result").innerHTML = msg.ok
     ? `✅ Sent to ${msg.target}.`
@@ -514,6 +547,7 @@ async function loadDashboard() {
     tile(`<span class="accent">${a.avgCoveragePct}%</span>`, "avg coverage"),
     tile(a.liveCalls, "live calls"),
     tile(a.totalSuggestions, "nudges surfaced"),
+    tile(a.totalLlmCalls ?? 0, "LLM calls"),
   ].join("");
   $("slot-coverage").innerHTML = a.slotCoverage.length
     ? a.slotCoverage.map((s) => `<div class="cov-row"><span>${s.label}</span><span class="track"><i style="width:${s.coveredPct}%"></i></span><span class="pct">${s.coveredPct}%</span></div>`).join("")

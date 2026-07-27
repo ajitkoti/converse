@@ -21,6 +21,9 @@ import { OfflineLlmClient } from "./offline-llm.js";
 import { frameworkOverride } from "./frameworks.js";
 import { Coach, type CoachingSignal, type CoachingMetrics } from "./coaching.js";
 import { detectObjection, type ObjectionType } from "./objections.js";
+import { analyzeCallLLM, analyzeCallHeuristic } from "./analysis.js";
+import type { LlmRequest } from "../engine/llm.js";
+import type { CallAnalysis } from "./types.js";
 import type { Settings } from "./settings.js";
 import type { ContextLibrary } from "./context.js";
 import type { SessionStore } from "./store.js";
@@ -48,6 +51,7 @@ export type ServerToClient =
   | { type: "summary"; record: SessionRecord; saved: boolean }
   | { type: "drive"; ok: boolean; files?: Array<{ name: string; link: string }>; error?: string }
   | { type: "coaching"; signal: CoachingSignal }
+  | { type: "analysis"; id: string; analysis: CallAnalysis }
   | {
       type: "objection";
       objType: ObjectionType;
@@ -115,6 +119,9 @@ export class Session {
   #clfMs: number[] = [];
   #nudgeMs: number[] = [];
   #specHits = 0;
+  #llmCalls = 0;
+  #llm: LlmClient = new OfflineLlmClient();
+  #llmIsOffline = true;
   #lastRecord: SessionRecord | null = null;
 
   constructor(send: (msg: ServerToClient) => void, env: SessionEnv) {
@@ -134,9 +141,18 @@ export class Session {
 
   #buildEngine(llm: LlmClient, config: EngineConfig, mode: "demo" | "live"): void {
     this.#config = config;
+    this.#llmIsOffline = llm instanceof OfflineLlmClient;
+    // Count real LLM calls (classifier, question, analysis) for usage telemetry.
+    // Offline/demo calls don't hit an API, so they don't count toward usage.
+    this.#llm = {
+      complete: (r: LlmRequest) => {
+        if (!this.#llmIsOffline) this.#llmCalls++;
+        return llm.complete(r);
+      },
+    };
     const contextBlock = this.#env.context.contextBlock("");
     this.#engine = new QualificationEngine({
-      llm,
+      llm: this.#llm,
       config,
       logger: this.#env.logger,
       prompts: this.#env.settings.prompts(contextBlock),
@@ -347,8 +363,32 @@ export class Session {
         avgNudgeMs: avg(this.#nudgeMs),
         speculativeHits: this.#specHits,
         echoesSuppressed: this.#bus.suppressedEchoes,
+        llmCalls: this.#llmCalls,
       },
     };
+  }
+
+  /** Generate the post-call analysis, persist it, and push it to the client. */
+  async #runAnalysis(record: SessionRecord): Promise<void> {
+    let analysis: CallAnalysis;
+    try {
+      analysis = this.#llmIsOffline
+        ? analyzeCallHeuristic(record)
+        : await analyzeCallLLM(this.#llm, record, this.#config.models.questionGen);
+    } catch {
+      analysis = analyzeCallHeuristic(record); // fall back on any model error
+    }
+    record.analysis = analysis;
+    if (record.perf) record.perf.llmCalls = this.#llmCalls; // include the analysis call
+    this.#lastRecord = record;
+    if (this.#env.settings.get().autoSave !== false) {
+      try {
+        this.#env.store.save(record);
+      } catch {
+        /* best effort */
+      }
+    }
+    this.#send({ type: "analysis", id: record.id, analysis });
   }
 
   #end(): void {
@@ -367,6 +407,9 @@ export class Session {
         }
       }
       this.#send({ type: "summary", record, saved });
+      // Post-call AI debrief runs after the summary lands so the UI can show a
+      // "generating…" state; it re-saves the record with the analysis attached.
+      void this.#runAnalysis(record);
       this.#send({ type: "ended" });
     }, 400);
   }

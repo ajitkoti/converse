@@ -302,6 +302,15 @@ the engine, none of them imported by it:
   captured (transcript + final slot states with evidence + nudges) and written to
   `data/sessions/<id>.{json,summary.md,transcript.md}`; a JSON API serves History
   and downloads.
+- **Post-call analysis** (`analysis.ts`): after `#end()` snapshots the record, one
+  LLM pass over the transcript + coverage produces a structured `CallAnalysis`
+  (went-well/didn't/improve, missed opportunities, red flags, budget, key
+  decisions, sentiment, follow-up email). Offline/error → a deterministic
+  heuristic derived from coverage, objections, and talk ratio, so it always
+  yields something. The result is streamed to the client (`{type:"analysis"}`),
+  re-saved into the record, and rendered into the summary Markdown + exports.
+  Real (non-offline) LLM calls are counted per session (`perf.llmCalls`) and
+  aggregated on the dashboard.
 - **Drive export** (`gdrive.ts`): optional OAuth/service-account upload of the
   same artifacts; gracefully disabled when unconfigured (local save always works).
 

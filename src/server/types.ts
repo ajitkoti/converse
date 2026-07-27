@@ -48,7 +48,9 @@ export interface SessionRecord {
     avgNudgeMs: number;
     speculativeHits: number;
     echoesSuppressed: number;
+    llmCalls: number;
   };
+  analysis?: CallAnalysis;
 }
 
 /** Lightweight header for the history list. */
@@ -62,12 +64,25 @@ export interface SessionSummary {
   suggestions: number;
 }
 
+export interface CallAnalysis {
+  wentWell: string[];
+  didntGoWell: string[];
+  improvements: string[];
+  followUpEmail: string;
+  missedOpportunities: string[];
+  redFlags: string[];
+  budget: string;
+  keyDecisions: string[];
+  sentiment: { overall: "positive" | "neutral" | "negative"; rationale: string };
+}
+
 /** Aggregate stats across all saved sessions, for the dashboard. */
 export interface Analytics {
   totalCalls: number;
   liveCalls: number;
   avgCoveragePct: number;
   totalSuggestions: number;
+  totalLlmCalls: number;
   totalTalkMs: { repMs: number; prospectMs: number };
   /** per-slot: how often it ended covered */
   slotCoverage: Array<{ id: string; label: string; coveredPct: number }>;

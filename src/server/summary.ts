@@ -66,7 +66,39 @@ export function buildSummaryMarkdown(r: SessionRecord): string {
     lines.push(`- Avg classifier latency: ${r.perf.avgClassifierMs} ms`);
     lines.push(`- Avg nudge latency: ${r.perf.avgNudgeMs} ms (${r.perf.speculativeHits} served instantly)`);
     if (r.perf.echoesSuppressed) lines.push(`- Rep-echo lines suppressed: ${r.perf.echoesSuppressed}`);
+    if (r.perf.llmCalls) lines.push(`- LLM calls: ${r.perf.llmCalls}`);
     lines.push("");
+  }
+
+  if (r.analysis) {
+    const a = r.analysis;
+    const bullets = (title: string, xs: string[]) => {
+      if (!xs || !xs.length) return;
+      lines.push(`### ${title}`);
+      lines.push("");
+      for (const x of xs) lines.push(`- ${x}`);
+      lines.push("");
+    };
+    lines.push(`## AI deal debrief`);
+    lines.push("");
+    const mood = { positive: "🟢 positive", neutral: "🟡 neutral", negative: "🔴 negative" }[a.sentiment.overall];
+    lines.push(`- **Sentiment:** ${mood}${a.sentiment.rationale ? ` — ${a.sentiment.rationale}` : ""}`);
+    lines.push(`- **Budget / economics:** ${a.budget}`);
+    lines.push("");
+    bullets("What went well", a.wentWell);
+    bullets("What didn't go well", a.didntGoWell);
+    bullets("What to improve", a.improvements);
+    bullets("Missed opportunities", a.missedOpportunities);
+    bullets("Red flags", a.redFlags);
+    bullets("Key decision points", a.keyDecisions);
+    if (a.followUpEmail && a.followUpEmail.trim()) {
+      lines.push(`### Suggested follow-up email`);
+      lines.push("");
+      lines.push("```");
+      lines.push(a.followUpEmail.trim());
+      lines.push("```");
+      lines.push("");
+    }
   }
 
   if (r.objections && r.objections.length) {
