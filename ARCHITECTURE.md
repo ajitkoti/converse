@@ -349,7 +349,12 @@ the engine, none of them imported by it:
   `DriveExporter`, faked in tests), so the DB logic is verified without Google
   credentials and carries no LLM dependency — the analyze step for refresh is
   injected. Finished calls auto-sync on end; `/api/drive/{calls,analysis,refresh}`
-  browse, fetch, and re-run analyses back into Drive.
+  browse, fetch, and re-run analyses back into Drive. Every Files API call passes
+  the all-drives flags and the OAuth scope is full `drive`, so the folder id may
+  live in a **Shared Drive (Team Drive)** — a whole team points every member's app
+  at the same folder to share one call database (see `docs/GOOGLE_DRIVE_TEAM.md`).
+  A gated `test:int` suite verifies the round-trip against real Drive via a
+  service account.
 - **Pre-recorded transcription** (`transcribe.ts`): for a Drive recording with no
   transcript, `deepgramPrerecorded` transcribes the audio (Deepgram REST, diarize
   + utterances; the response parser is a pure, tested function), then

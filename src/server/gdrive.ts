@@ -11,14 +11,22 @@
  *        - share your target Drive folder with the service-account email
  *
  * Target folder: settings.driveFolderId, else GDRIVE_FOLDER_ID, else Drive root.
+ * That folder id may live in a **Shared Drive** (Team Drive): every call passes
+ * the all-drives flags, and the scope is full `drive`, so a team can point every
+ * member's app at the same Shared Drive folder and share one call database. The
+ * broad scope is required because `drive.file` only exposes files THIS app
+ * created for THIS user — teammates couldn't see each other's calls.
  */
 
 import * as fs from "node:fs";
 import { google, type drive_v3 } from "googleapis";
 import type { OAuth2Client } from "google-auth-library";
 
-export const DRIVE_SCOPES = ["https://www.googleapis.com/auth/drive.file"];
+export const DRIVE_SCOPES = ["https://www.googleapis.com/auth/drive"];
 export const TOKEN_PATH = ".gdrive-token.json";
+
+/** Flags that make every Files API call work inside Shared Drives too. */
+const ALL_DRIVES = { supportsAllDrives: true, includeItemsFromAllDrives: true } as const;
 
 export interface DriveFileInput {
   name: string;
@@ -126,7 +134,7 @@ export class DriveExporter implements DriveClient {
     ]
       .filter(Boolean)
       .join(" and ");
-    const found = await this.#drive.files.list({ q, fields: "files(id)", pageSize: 1 });
+    const found = await this.#drive.files.list({ q, fields: "files(id)", pageSize: 1, ...ALL_DRIVES });
     const hit = found.data.files?.[0]?.id;
     if (hit) return hit;
     const made = await this.#drive.files.create({
@@ -136,6 +144,7 @@ export class DriveExporter implements DriveClient {
         parents: parentId ? [parentId] : undefined,
       },
       fields: "id",
+      supportsAllDrives: true,
     });
     return made.data.id!;
   }
@@ -148,7 +157,7 @@ export class DriveExporter implements DriveClient {
       `'${folderId}' in parents`,
       "trashed = false",
     ].join(" and ");
-    const res = await this.#drive.files.list({ q, fields: "files(id, name, modifiedTime)", pageSize: 1 });
+    const res = await this.#drive.files.list({ q, fields: "files(id, name, modifiedTime)", pageSize: 1, ...ALL_DRIVES });
     const hit = res.data.files?.[0];
     return hit?.id ? { id: hit.id, name: hit.name ?? name, modifiedTime: hit.modifiedTime ?? undefined } : null;
   }
@@ -162,6 +171,7 @@ export class DriveExporter implements DriveClient {
         fileId: existing.id,
         media: { mimeType: file.mimeType, body: file.content },
         fields: "id, webViewLink",
+        supportsAllDrives: true,
       });
       return { id: res.data.id!, link: res.data.webViewLink ?? "" };
     }
@@ -169,6 +179,7 @@ export class DriveExporter implements DriveClient {
       requestBody: { name: file.name, parents: [folderId] },
       media: { mimeType: file.mimeType, body: file.content },
       fields: "id, webViewLink",
+      supportsAllDrives: true,
     });
     return { id: res.data.id!, link: res.data.webViewLink ?? "" };
   }
@@ -176,14 +187,14 @@ export class DriveExporter implements DriveClient {
   /** Read a file's contents as a string. */
   async readFile(fileId: string): Promise<string> {
     if (!this.#drive) throw new Error("Drive not connected");
-    const res = await this.#drive.files.get({ fileId, alt: "media" }, { responseType: "text" });
+    const res = await this.#drive.files.get({ fileId, alt: "media", supportsAllDrives: true }, { responseType: "text" });
     return typeof res.data === "string" ? res.data : JSON.stringify(res.data);
   }
 
   /** Read a file's raw bytes (for binary files like recordings). */
   async readFileBinary(fileId: string): Promise<Buffer> {
     if (!this.#drive) throw new Error("Drive not connected");
-    const res = await this.#drive.files.get({ fileId, alt: "media" }, { responseType: "arraybuffer" });
+    const res = await this.#drive.files.get({ fileId, alt: "media", supportsAllDrives: true }, { responseType: "arraybuffer" });
     return Buffer.from(res.data as ArrayBuffer);
   }
 
@@ -196,8 +207,15 @@ export class DriveExporter implements DriveClient {
       fields: "files(id, name, modifiedTime)",
       orderBy: "modifiedTime desc",
       pageSize: 1000,
+      ...ALL_DRIVES,
     });
     return (res.data.files ?? []).map((f) => ({ id: f.id!, name: f.name ?? "", modifiedTime: f.modifiedTime ?? undefined }));
+  }
+
+  /** Permanently delete a file or folder by id (folders cascade). */
+  async deleteFile(fileId: string): Promise<void> {
+    if (!this.#drive) throw new Error("Drive not connected");
+    await this.#drive.files.delete({ fileId, supportsAllDrives: true });
   }
 
   /** Upload files into a folder. Returns [{name, id, link}]. */
@@ -212,6 +230,7 @@ export class DriveExporter implements DriveClient {
         requestBody: { name: f.name, parents: folderId ? [folderId] : undefined },
         media: { mimeType: f.mimeType, body: f.content },
         fields: "id, webViewLink",
+        supportsAllDrives: true,
       });
       out.push({ name: f.name, id: res.data.id!, link: res.data.webViewLink ?? "" });
     }
