@@ -19,7 +19,13 @@ if (!clientPath || !fs.existsSync(clientPath)) {
 }
 
 const PORT = 5273;
-const oauth = buildOAuthClient(clientPath);
+// Force the loopback redirect to the port this script's local server listens on.
+// A stock Desktop-app client JSON ships redirect_uris: ["http://localhost"] (port 80),
+// so without this override Google would redirect the browser to port 80 and the
+// consent code would never reach our server on PORT. Google allows any loopback port
+// for Desktop clients without pre-registration, and the handler below reads `code`
+// from any path, so /oauth2callback is fine.
+const oauth = buildOAuthClient(clientPath, `http://localhost:${PORT}/oauth2callback`);
 const url = oauth.generateAuthUrl({ access_type: "offline", scope: [...DRIVE_SCOPES, ...CALENDAR_SCOPES], prompt: "consent" });
 
 const server = http.createServer(async (req, res) => {
