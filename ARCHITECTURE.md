@@ -286,7 +286,7 @@ those are host concerns wired in through its small, optional dependency hooks.
 ## Testing
 
 - **Logic → fixtures.** `src/fixtures/*.json` replay through the real engine with
-  a scripted/offline `LlmClient` at full speed; 29 tests cover speaker tagging,
+  a scripted/offline `LlmClient` at full speed; 40 tests cover speaker tagging,
   utterance-end markers, merge rules, cadence, escalation timing, cooldown,
   mid-utterance guard, latency drop, and the portability contract.
 - **Feel → live.** Spam / latency / wrong-moment problems only surface live; after

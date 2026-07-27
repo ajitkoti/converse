@@ -361,6 +361,32 @@ input:focus, textarea:focus { outline: none; border-color: rgba(99,102,241,0.6);
 .summary-notes { margin-top: 20px; }
 .summary-notes .body { background: var(--panel); border: 1px solid var(--stroke); border-radius: 12px; padding: 13px 15px; white-space: pre-wrap; font-size: 13.5px; line-height: 1.5; color: var(--muted); }
 
+.coach-stats { font-size: 12px; color: var(--dim); font-variant-numeric: tabular-nums; }
+
+/* Objection card (distinct from suggestion) */
+.obj-card {
+  position: absolute; bottom: 84px; right: 26px; width: min(380px, 84vw);
+  background: linear-gradient(180deg, rgba(48, 34, 24, 0.94), rgba(30, 22, 16, 0.94));
+  border: 1px solid rgba(251, 146, 60, 0.5); border-radius: 16px; padding: 16px 18px;
+  box-shadow: var(--shadow), 0 0 30px rgba(251, 146, 60, 0.15); z-index: 6;
+}
+.obj-tag { font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em; color: #fdba74; margin-bottom: 8px; }
+.obj-doc { color: var(--dim); text-transform: none; letter-spacing: 0; }
+.obj-snippet { font-size: 13.5px; line-height: 1.5; color: var(--muted); white-space: pre-wrap; max-height: 180px; overflow: auto; margin-bottom: 12px; }
+
+/* Summary coaching + objections */
+.summary-coaching { display: flex; gap: 10px; flex-wrap: wrap; margin: 4px 0 18px; }
+.coach-tile { background: var(--panel); border: 1px solid var(--stroke); border-radius: 12px; padding: 10px 14px; min-width: 110px; }
+.coach-tile .n { font-size: 19px; font-weight: 700; }
+.coach-tile .l { font-size: 11.5px; color: var(--muted); }
+.coach-tile.warn { border-color: rgba(251,191,36,0.35); }
+.summary-objections { margin-top: 20px; }
+.summary-objections h3 { font-size: 15px; margin: 0 0 8px; }
+.obj-row { background: rgba(251,146,60,0.08); border: 1px solid rgba(251,146,60,0.22); border-radius: 10px; padding: 9px 13px; margin-bottom: 8px; font-size: 13.5px; }
+.obj-row .when { color: #fdba74; font-size: 11px; margin-right: 8px; font-variant-numeric: tabular-nums; }
+
+select#set-framework { background: rgba(255,255,255,0.04); border: 1px solid var(--stroke); border-radius: 10px; color: var(--text); padding: 9px 12px; font-size: 14px; font-family: inherit; width: 100%; }
+
 @media (max-width: 780px) {
   .stat-tiles { grid-template-columns: repeat(2, 1fr); }
   .dash-cols { grid-template-columns: 1fr; }

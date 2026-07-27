@@ -28,6 +28,10 @@ export interface UserSettings {
   /** API keys entered in-app (used in packaged builds so no file editing is needed) */
   deepgramApiKey?: string;
   anthropicApiKey?: string;
+  /** qualification framework for live calls: meddpicc | bant | spiced */
+  framework?: string;
+  /** Slack incoming-webhook URL for post-call export */
+  slackWebhookUrl?: string;
 }
 
 export class Settings {

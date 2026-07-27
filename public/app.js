@@ -14,6 +14,8 @@ let slotsData = {}; // full SlotStates for the inspector
 let talk = { repMs: 0, prospectMs: 0 };
 let currentSlot = null;
 let inspectSlot = null;
+let coach = { repWords: 0, questions: 0 };
+let objTimer = null;
 let cardTimer = null;
 let toastTimer = null;
 let notesTimer = null;
@@ -89,9 +91,13 @@ function handle(msg) {
     case "guidance": onGuidance(msg.event); break;
     case "summary": lastRecord = msg.record; renderSummary(msg.record, { live: true, saved: msg.saved }); break;
     case "drive": renderDriveResult(msg); break;
+    case "coaching": toast("🎯 " + msg.signal.message, "warn"); break;
+    case "objection": onObjection(msg); break;
+    case "export": renderExportResult(msg); break;
     case "ended":
       $("rec").style.animation = "none"; $("rec").style.background = "var(--dim)";
-      showApp(); showView("summary"); if (ws) ws.close();
+      showApp(); showView("summary");
+      // keep the socket open so Drive/Slack export can reach the session
       break;
   }
 }
@@ -143,6 +149,11 @@ function onTranscript(ev) {
     if (ev.isFinal) {
       const dur = Math.max(0, ev.tsEnd - ev.tsStart);
       talk[ev.speaker === "rep" ? "repMs" : "prospectMs"] += dur;
+      if (ev.speaker === "rep") {
+        coach.repWords += ev.text.trim().split(/\s+/).filter(Boolean).length;
+        if (ev.text.includes("?")) coach.questions++;
+        updateCoachStats();
+      }
       updateTalkMeter();
       appendTranscript(ev.speaker, ev.text);
     }
@@ -155,6 +166,19 @@ function appendTranscript(speaker, text) {
   div.innerHTML = `<b>${speaker === "rep" ? "You" : "Prospect"}:</b> ${escapeHtml(text)}`;
   list.appendChild(div);
   list.scrollTop = list.scrollHeight;
+}
+function updateCoachStats() {
+  const min = talk.repMs / 60000;
+  const wpm = min > 0 ? Math.round(coach.repWords / min) : 0;
+  $("coach-stats").textContent = `Q ${coach.questions} · ${wpm} wpm`;
+}
+function onObjection(msg) {
+  $("obj-label").textContent = msg.label;
+  $("obj-doc").textContent = msg.doc ? `· ${msg.doc}` : "";
+  $("obj-snippet").textContent = msg.snippet || "No matching battlecard — add one in Context.";
+  $("obj-card").classList.remove("hidden");
+  if (objTimer) clearTimeout(objTimer);
+  objTimer = setTimeout(() => $("obj-card").classList.add("hidden"), 30000);
 }
 function updateTalkMeter() {
   const total = talk.repMs + talk.prospectMs;
@@ -247,6 +271,7 @@ function hookChannel(ac, stream, channel) {
 async function begin(mode, fixture) {
   const persona = $("home-persona").value.trim();
   if (persona !== (state.settings.persona || "")) state.settings = await api.post("/api/settings", { persona });
+  if (ws && ws.readyState === WebSocket.OPEN) ws.close();
   try { await connect(); } catch (err) { setupStatus(err.message); return; }
   if (mode === "live") { try { await startLiveAudio(); } catch { setupStatus("Microphone permission is required for live mode."); if (ws) ws.close(); return; } }
   resetOverlay();
@@ -254,7 +279,8 @@ async function begin(mode, fixture) {
 }
 function endCall() { send({ type: "stop" }); if (audioStop) audioStop(); }
 function resetOverlay() {
-  elapsedMs = 0; currentSlot = null; talk = { repMs: 0, prospectMs: 0 };
+  elapsedMs = 0; currentSlot = null; talk = { repMs: 0, prospectMs: 0 }; coach = { repWords: 0, questions: 0 };
+  $("coach-stats").textContent = ""; $("obj-card").classList.add("hidden");
   $("timer").textContent = "00:00"; $("caption").innerHTML = ""; $("tx-list").innerHTML = ""; $("notes-area").value = "";
   $("rec").style.animation = ""; $("rec").style.background = "var(--green)";
   $("transcript-panel").classList.add("hidden"); $("notes-panel").classList.add("hidden");
@@ -277,6 +303,21 @@ function renderSummary(rec, opts = {}) {
 
   $("summary-talk").innerHTML = talkTotal
     ? `<div class="tm-bar"><i style="width:${repPct}%"></i><b style="width:${100 - repPct}%"></b></div><div class="lbl">Talk ratio — you ${repPct}% · prospect ${100 - repPct}%</div>`
+    : "";
+
+  const c = rec.coaching;
+  $("summary-coaching").innerHTML = c
+    ? [
+        coachTile(c.talkRatioRepPct + "%", "you talked", c.talkRatioRepPct > 65),
+        coachTile(c.questionsAsked, "questions", c.questionsAsked < 3),
+        coachTile(c.repWpm, "your pace (wpm)", c.repWpm > 180),
+        coachTile(fmt(c.longestMonologueMs), "longest monologue", c.longestMonologueMs > 75000),
+      ].join("")
+    : "";
+
+  $("summary-objections").innerHTML = rec.objections && rec.objections.length
+    ? `<h3>Objections raised (${rec.objections.length})</h3>` + rec.objections.map((o) =>
+        `<div class="obj-row"><span class="when">${fmt(o.ts)}</span><b>${escapeHtml(o.label)}</b>${o.doc ? ` — battlecard: ${escapeHtml(o.doc)}` : ""}</div>`).join("")
     : "";
 
   $("summary-grid").innerHTML = rec.slotDefs.map((d) => {
@@ -302,8 +343,38 @@ function renderSummary(rec, opts = {}) {
   const dl = (k) => `/api/download?id=${encodeURIComponent(rec.id)}&kind=${k}`;
   $("dl-summary").onclick = () => location.assign(dl("summary"));
   $("dl-transcript").onclick = () => location.assign(dl("transcript"));
+  $("export-result").innerHTML = "";
   $("export-drive").style.display = opts.live ? "" : "none";
+  $("export-slack").style.display = opts.live ? "" : "none";
   if (!opts.saved && opts.live) toast("Auto-save is off — downloads use the saved record.", "warn");
+}
+function coachTile(n, l, warn) { return `<div class="coach-tile ${warn ? "warn" : ""}"><div class="n">${n}</div><div class="l">${l}</div></div>`; }
+function renderExportResult(msg) {
+  $("export-result").innerHTML = msg.ok
+    ? `✅ Sent to ${msg.target}.`
+    : `<span style="color:var(--amber)">${msg.target} export: ${escapeHtml(msg.error || "failed")}</span>`;
+}
+function crmText(rec) {
+  const lines = [`Discovery call — ${new Date(rec.startedAt).toLocaleString()}`, ""];
+  for (const d of rec.slotDefs) {
+    const st = rec.slots[d.id] || { status: "empty", evidence: [] };
+    const ev = st.evidence && st.evidence.length ? st.evidence[st.evidence.length - 1] : "";
+    lines.push(`${d.label} [${st.status}]${ev ? ": " + ev : ""}`);
+  }
+  if (rec.notes) lines.push("", "Notes: " + rec.notes);
+  return lines.join("\n");
+}
+function emailSummary() {
+  if (!lastRecord) return;
+  const covered = lastRecord.slotDefs.filter((s) => lastRecord.slots[s.id]?.status === "covered").length;
+  const subject = `Discovery call summary — ${covered}/${lastRecord.slotDefs.length} covered`;
+  const body = crmText(lastRecord);
+  location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+}
+async function copyCrm() {
+  if (!lastRecord) return;
+  try { await navigator.clipboard.writeText(crmText(lastRecord)); toast("CRM fields copied", "info"); }
+  catch { toast("Copy failed", "warn"); }
 }
 function renderDriveResult(msg) {
   $("drive-result").innerHTML = msg.ok
@@ -425,6 +496,11 @@ function fillSettings() {
   $("set-question-prompt").value = s.questionPrompt || "";
   $("set-classifier-prompt").placeholder = state.defaults.classifierPrompt || "";
   $("set-question-prompt").placeholder = state.defaults.questionPrompt || "";
+  const fwSel = $("set-framework");
+  fwSel.innerHTML = (state.frameworks || [{ id: "meddpicc", name: "MEDDPICC" }])
+    .map((f) => `<option value="${f.id}">${f.name}</option>`).join("");
+  fwSel.value = s.framework || "meddpicc";
+  $("set-slack").value = s.slackWebhookUrl || "";
 }
 async function saveSettings() {
   const patch = {
@@ -435,6 +511,8 @@ async function saveSettings() {
     useContext: $("set-usecontext").checked,
     classifierPrompt: $("set-classifier-prompt").value.trim(),
     questionPrompt: $("set-question-prompt").value.trim(),
+    framework: $("set-framework").value,
+    slackWebhookUrl: $("set-slack").value.trim() || undefined,
     config: { models: { classifier: $("set-model-classifier").value.trim() || undefined, questionGen: $("set-model-question").value.trim() || undefined }, suggestion: $("set-cooldown").value ? { cooldownSeconds: Number($("set-cooldown").value) } : undefined },
   };
   const dg = $("set-deepgram-key").value.trim(); const an = $("set-anthropic-key").value.trim();
@@ -472,8 +550,12 @@ $("notes-area").addEventListener("input", (e) => {
   const text = e.target.value;
   notesTimer = setTimeout(() => send({ type: "note", text }), 400);
 });
-$("summary-done").addEventListener("click", () => showView("home"));
+$("summary-done").addEventListener("click", () => { if (ws && ws.readyState === WebSocket.OPEN) ws.close(); showView("home"); });
 $("copy-summary").addEventListener("click", copySummary);
+$("copy-crm").addEventListener("click", copyCrm);
+$("export-email").addEventListener("click", emailSummary);
+$("export-slack").addEventListener("click", () => { send({ type: "export-slack" }); toast("Posting to Slack…", "info"); });
+$("obj-dismiss").addEventListener("click", () => $("obj-card").classList.add("hidden"));
 $("export-drive").addEventListener("click", () => { send({ type: "export-drive" }); toast("Uploading to Google Drive…", "info"); });
 $("settings-save").addEventListener("click", saveSettings);
 for (const b of document.querySelectorAll("[data-reset]"))

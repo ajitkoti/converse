@@ -105,6 +105,8 @@
           <label class="field"><span>Google Drive folder id</span><input id="set-drive-folder" placeholder="(blank = auto 'Converse Sessions')" /></label>
           <label class="field"><span>Deepgram API key <em id="dg-set" class="key-set"></em></span><input id="set-deepgram-key" type="password" placeholder="for live transcription" autocomplete="off" /></label>
           <label class="field"><span>Anthropic API key <em id="an-set" class="key-set"></em></span><input id="set-anthropic-key" type="password" placeholder="optional — sharper live suggestions" autocomplete="off" /></label>
+          <label class="field"><span>Framework (live calls)</span><select id="set-framework"></select></label>
+          <label class="field"><span>Slack webhook URL</span><input id="set-slack" placeholder="https://hooks.slack.com/services/… (optional)" autocomplete="off" /></label>
           <label class="check"><input id="set-autosave" type="checkbox" /> <span>Auto-save every session locally</span></label>
           <label class="check"><input id="set-usecontext" type="checkbox" /> <span>Inject context docs into suggestions</span></label>
         </div>
@@ -132,18 +134,24 @@
           <h2>Call summary</h2>
           <div class="row-actions">
             <button id="copy-summary" class="btn ghost">Copy</button>
+            <button id="copy-crm" class="btn ghost">Copy CRM fields</button>
             <button id="dl-summary" class="btn ghost">Download</button>
             <button id="dl-transcript" class="btn ghost">Transcript</button>
-            <button id="export-drive" class="btn">Export to Drive</button>
+            <button id="export-email" class="btn ghost">Email</button>
+            <button id="export-slack" class="btn ghost">Slack</button>
+            <button id="export-drive" class="btn">Drive</button>
             <button id="summary-done" class="btn ghost">Done</button>
           </div>
         </div>
         <div id="summary-meta" class="summary-meta"></div>
         <div id="summary-talk" class="summary-talk"></div>
+        <div id="summary-coaching" class="summary-coaching"></div>
         <div id="summary-grid" class="summary-grid"></div>
+        <div id="summary-objections" class="summary-objections"></div>
         <div id="summary-next" class="summary-next"></div>
         <div id="summary-notes" class="summary-notes"></div>
         <div id="summary-nudges" class="summary-nudges"></div>
+        <div id="export-result" class="drive-result"></div>
         <div id="drive-result" class="drive-result"></div>
       </section>
     </main>
@@ -156,6 +164,7 @@
           <span id="timer" class="timer">00:00</span>
           <span id="mode-badge" class="mode-badge"></span>
           <span id="score" class="score">0/8</span>
+          <span id="coach-stats" class="coach-stats"></span>
         </div>
         <div id="talk-meter" class="talk-meter" title="Talk time — you vs prospect">
           <div class="tm-bar"><i id="tm-rep"></i><b id="tm-pro"></b></div>
@@ -179,6 +188,12 @@
           <button id="card-dismiss" class="btn ghost">Dismiss <kbd>Esc</kbd></button>
           <button id="card-snooze" class="btn">Snooze 5m <kbd>S</kbd></button>
         </div>
+      </div>
+
+      <div id="obj-card" class="obj-card hidden">
+        <div class="obj-tag">⚠ <span id="obj-label"></span> objection <span id="obj-doc" class="obj-doc"></span></div>
+        <div id="obj-snippet" class="obj-snippet"></div>
+        <button id="obj-dismiss" class="btn ghost">Got it</button>
       </div>
 
       <aside id="transcript-panel" class="side-panel hidden">

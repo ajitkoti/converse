@@ -50,6 +50,25 @@ export function buildSummaryMarkdown(r: SessionRecord): string {
   }
   lines.push("");
 
+  if (r.coaching) {
+    lines.push(`## Coaching`);
+    lines.push("");
+    lines.push(`- Talk ratio (you): ${r.coaching.talkRatioRepPct}%`);
+    lines.push(`- Questions asked: ${r.coaching.questionsAsked}`);
+    lines.push(`- Your speaking pace: ${r.coaching.repWpm} wpm`);
+    lines.push(`- Longest monologue: ${fmt(r.coaching.longestMonologueMs)}`);
+    lines.push("");
+  }
+
+  if (r.objections && r.objections.length) {
+    lines.push(`## Objections raised (${r.objections.length})`);
+    lines.push("");
+    for (const o of r.objections) {
+      lines.push(`- **[${fmt(o.ts)}] ${o.label}**${o.doc ? ` — battlecard: ${o.doc}` : ""}`);
+    }
+    lines.push("");
+  }
+
   if (r.suggestions.length) {
     lines.push(`## Copilot nudges (${r.suggestions.length})`);
     lines.push("");

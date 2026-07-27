@@ -17,6 +17,9 @@ import type { GuidanceEvent, SlotId, Speaker, TranscriptEvent } from "../engine/
 import { loadCallFixture } from "../fixtures/load.js";
 import { DeepgramLive } from "./deepgram.js";
 import { OfflineLlmClient } from "./offline-llm.js";
+import { frameworkOverride } from "./frameworks.js";
+import { Coach, type CoachingSignal, type CoachingMetrics } from "./coaching.js";
+import { detectObjection, type ObjectionType } from "./objections.js";
 import type { Settings } from "./settings.js";
 import type { ContextLibrary } from "./context.js";
 import type { SessionStore } from "./store.js";
@@ -43,6 +46,16 @@ export type ServerToClient =
   | { type: "guidance"; event: GuidanceEvent }
   | { type: "summary"; record: SessionRecord; saved: boolean }
   | { type: "drive"; ok: boolean; files?: Array<{ name: string; link: string }>; error?: string }
+  | { type: "coaching"; signal: CoachingSignal }
+  | {
+      type: "objection";
+      objType: ObjectionType;
+      label: string;
+      cue: string;
+      doc?: string;
+      snippet?: string;
+    }
+  | { type: "export"; target: "slack"; ok: boolean; error?: string }
   | { type: "ended" };
 
 export interface SessionEnv {
@@ -93,6 +106,9 @@ export class Session {
   #suggestions: SuggestionRecord[] = [];
   #notes = "";
   #talk = { repMs: 0, prospectMs: 0 };
+  #coach = new Coach();
+  #objections: Array<{ ts: number; type: string; label: string; doc?: string }> = [];
+  #lastObjectionAt: Partial<Record<string, number>> = {};
   #lastRecord: SessionRecord | null = null;
 
   constructor(send: (msg: ServerToClient) => void, env: SessionEnv) {
@@ -131,6 +147,11 @@ export class Session {
         const dur = Math.max(0, e.tsEnd - e.tsStart);
         if (e.speaker === "rep") this.#talk.repMs += dur;
         else this.#talk.prospectMs += dur;
+
+        const sig = this.#coach.ingest(e);
+        if (sig) this.#send({ type: "coaching", signal: sig });
+
+        if (e.speaker === "prospect") this.#checkObjection(e.text, e.tsEnd);
       }
       this.#send({ type: "transcript", event: e });
     });
@@ -187,7 +208,9 @@ export class Session {
         level: "warn",
       });
     }
-    this.#buildEngine(llm, loadConfig(this.#env.settings.configOverride()), "live");
+    const fw = frameworkOverride(this.#env.settings.get().framework);
+    const liveCfg = loadConfig(mergeOverride(fw ?? {}, this.#env.settings.configOverride()));
+    this.#buildEngine(llm, liveCfg, "live");
 
     this.#dgRep = this.#makeDeepgram("rep");
     this.#dgProspect = this.#makeDeepgram("prospect");
@@ -228,6 +251,50 @@ export class Session {
     this.#notes = String(text ?? "").slice(0, 20000);
   }
 
+  #checkObjection(text: string, ts: number): void {
+    const hit = detectObjection(text);
+    if (!hit) return;
+    const last = this.#lastObjectionAt[hit.type];
+    if (last !== undefined && ts - last < 45_000) return; // per-type cooldown
+    this.#lastObjectionAt[hit.type] = ts;
+    const match = this.#env.context.bestMatch(`${text} ${hit.label}`);
+    this.#objections.push({ ts, type: hit.type, label: hit.label, doc: match?.name });
+    this.#send({
+      type: "objection",
+      objType: hit.type,
+      label: hit.label,
+      cue: hit.cue,
+      doc: match?.name,
+      snippet: match?.snippet,
+    });
+  }
+
+  /** Post the last finished session's summary to a Slack incoming webhook. */
+  async exportSlack(): Promise<void> {
+    const record = this.#lastRecord;
+    const url = this.#env.settings.get().slackWebhookUrl;
+    if (!record) return void this.#send({ type: "export", target: "slack", ok: false, error: "No finished session yet." });
+    if (!url) return void this.#send({ type: "export", target: "slack", ok: false, error: "No Slack webhook URL set (Settings)." });
+    try {
+      const covered = record.slotDefs.filter((s) => record.slots[s.id]?.status === "covered").length;
+      const gaps = record.slotDefs.filter((s) => record.slots[s.id]?.status !== "covered").map((s) => s.label);
+      const text = [
+        `*Discovery call summary* — ${new Date(record.startedAt).toLocaleString()}`,
+        `Coverage: *${covered}/${record.slotDefs.length}*` + (gaps.length ? `  ·  Open: ${gaps.join(", ")}` : "  ·  full coverage"),
+        record.notes ? `Notes: ${record.notes}` : "",
+      ].filter(Boolean).join("\n");
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+      if (!res.ok) throw new Error(`Slack responded ${res.status}`);
+      this.#send({ type: "export", target: "slack", ok: true });
+    } catch (err) {
+      this.#send({ type: "export", target: "slack", ok: false, error: String(err) });
+    }
+  }
+
   #buildRecord(): SessionRecord {
     return {
       id: this.#id,
@@ -236,6 +303,7 @@ export class Session {
       mode: this.#mode,
       fixture: this.#fixture,
       persona: this.#env.settings.get().persona,
+      framework: this.#mode === "live" ? this.#env.settings.get().framework || "meddpicc" : "meddpicc",
       durationMs: this.#engine?.callTimeMs ?? 0,
       slotDefs: this.#slotDefs,
       slots: this.#engine?.getSlots() ?? ({} as SessionRecord["slots"]),
@@ -243,6 +311,8 @@ export class Session {
       suggestions: this.#suggestions,
       notes: this.#notes || undefined,
       talk: this.#talk,
+      coaching: this.#coach.metrics(),
+      objections: this.#objections,
     };
   }
 

@@ -17,6 +17,7 @@ import { Settings, type UserSettings } from "./settings.js";
 import { ContextLibrary } from "./context.js";
 import { SessionStore } from "./store.js";
 import { DriveExporter } from "./gdrive.js";
+import { frameworkList } from "./frameworks.js";
 import { buildSummaryMarkdown, buildTranscriptMarkdown } from "./summary.js";
 import type { SlotId } from "../engine/types.js";
 
@@ -97,6 +98,7 @@ export async function startServer(opts: ServerOptions): Promise<RunningServer> {
           settings: publicSettings(settings.get()),
           context: context.list(),
           drive: drive.status(),
+          frameworks: frameworkList(),
           defaults: { classifierPrompt: CLASSIFIER_SYSTEM, questionPrompt: QUESTION_SYSTEM },
         });
       }
@@ -198,6 +200,9 @@ export async function startServer(opts: ServerOptions): Promise<RunningServer> {
           break;
         case "export-drive":
           void session.exportDrive();
+          break;
+        case "export-slack":
+          void session.exportSlack();
           break;
         case "stop":
           session.stop();

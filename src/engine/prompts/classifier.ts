@@ -22,15 +22,7 @@ HARD RULES — violating any of these makes your output useless:
 4. "covered" REQUIRES A SPECIFIC, CONCRETE ANSWER. Vague, hypothetical, or deflecting answers ("we'd have to see", "probably someone in finance", "it depends") are at most "partial", never "covered". Be skeptical: a real discovery answer names people, numbers, steps, or dates.
 5. Only report slots that CHANGED in this window. Do not restate unchanged slots.
 
-Slot meanings (MEDDPICC):
-- metrics: quantified economic impact / the numbers that define success.
-- economicBuyer: the person with final budget authority (named or clearly identified).
-- decisionCriteria: the explicit criteria the prospect will judge a solution on.
-- decisionProcess: the steps/stages/timeline to reach a decision.
-- paperProcess: procurement / legal / security / contracting steps.
-- identifyPain: the concrete business pain and its consequences.
-- champion: an internal advocate with influence who will sell for you.
-- competition: incumbents, alternatives, or "do nothing".
+The slot meanings for THIS call are listed in the user message.
 
 OUTPUT: Return ONLY a JSON object, no prose, no code fence:
 {"updates":[{"slot":"<slotId>","status":"partial|covered","confidence":0.0-1.0,"quote":"<verbatim prospect quote>"}]}
@@ -45,13 +37,21 @@ export function buildClassifierPrompt(
   const current = slots
     .map((s) => {
       const st = states[s.id];
-      return `- ${s.id} (${s.label}): ${st.status}${st.confidence ? ` @${st.confidence.toFixed(2)}` : ""}`;
+      const status = st?.status ?? "empty";
+      const conf = st?.confidence ? ` @${st.confidence.toFixed(2)}` : "";
+      return `- ${s.id} (${s.label}): ${status}${conf}`;
     })
     .join("\n");
 
+  const meanings = slots
+    .map((s) => `- ${s.id} (${s.label}): ${s.description ?? `evidence that ${s.label} is covered.`}`)
+    .join("\n");
   const validIds = slots.map((s) => s.id).join(", ");
 
-  const user = `CURRENT SLOT STATUS:
+  const user = `SLOT MEANINGS (only these slots exist for this call):
+${meanings}
+
+CURRENT SLOT STATUS:
 ${current}
 
 Valid slot ids: ${validIds}

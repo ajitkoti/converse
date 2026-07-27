@@ -61,6 +61,14 @@ what's still open. Every session is auto-saved locally and shows up under
 - **Custom prompts & settings** — edit the classifier and question prompts, set a
   prospect **persona**, change models, cooldown, demo speed, and Drive folder from
   the **Settings** tab (persisted to `converse.config.json`).
+- **Live coaching** — real-time signals on long monologues, lopsided talk ratio,
+  and too-few-questions, plus live questions/WPM stats.
+- **Objection detection** — flags price/timing/competitor/authority objections as
+  the prospect raises them and surfaces the matching battlecard from your context.
+- **Frameworks** — MEDDPICC (default), BANT, or SPICED, switchable in Settings
+  (the slot schema is fully config-driven).
+- **Exports** — post-call summary to Google Drive, **Slack** (webhook), an
+  **email** draft, or **copy CRM fields** to paste into Salesforce/HubSpot.
 - **Everything logged** — each classifier/suggestion decision is written to
   `logs/*.jsonl` for tuning.
 
@@ -134,7 +142,7 @@ test/                  29 offline tests (engine + server modules)
 ## Developer commands
 
 ```bash
-npm test            # 32 unit/integration tests, no network, no audio hardware
+npm test            # 40 unit/integration tests, no network, no audio hardware
 npm run typecheck
 npm run e2e         # full browser E2E (start `npm start` first) — drives a demo call end to end
 npm run replay                 # replay good-call in the terminal (offline classifier)
