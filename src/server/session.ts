@@ -23,6 +23,7 @@ import { detectObjection, type ObjectionType } from "./objections.js";
 import { objectionTree, type ObjectionStep } from "./objection-tree.js";
 import { IntelScout, type IntelKind } from "./intel.js";
 import { analyzeCallLLM, analyzeCallHeuristic } from "./analysis.js";
+import { estimateTokens, estimateCostUsd } from "./pricing.js";
 import type { LlmRequest } from "../engine/llm.js";
 import type { CallAnalysis } from "./types.js";
 import type { Settings } from "./settings.js";
@@ -108,6 +109,7 @@ export class Session {
   #demoTimer: ReturnType<typeof setTimeout> | null = null;
   #stopped = false;
   #ended = false;
+  #warnedNoProspect = false;
 
   // recording
   #id = "";
@@ -129,6 +131,8 @@ export class Session {
   #nudgeMs: number[] = [];
   #specHits = 0;
   #llmCalls = 0;
+  #llmInTokens = 0;
+  #llmOutTokens = 0;
   #llm: LlmClient = new OfflineLlmClient();
   #llmIsOffline = true;
   #lastRecord: SessionRecord | null = null;
@@ -151,12 +155,17 @@ export class Session {
   #buildEngine(llm: LlmClient, config: EngineConfig, mode: "demo" | "live"): void {
     this.#config = config;
     this.#llmIsOffline = llm instanceof OfflineLlmClient;
-    // Count real LLM calls (classifier, question, analysis) for usage telemetry.
-    // Offline/demo calls don't hit an API, so they don't count toward usage.
+    // Count real LLM calls + estimate tokens (classifier, question, analysis) for
+    // usage telemetry. Offline/demo calls don't hit an API, so they don't count.
     this.#llm = {
-      complete: (r: LlmRequest) => {
-        if (!this.#llmIsOffline) this.#llmCalls++;
-        return llm.complete(r);
+      complete: async (r: LlmRequest) => {
+        const res = await llm.complete(r);
+        if (!this.#llmIsOffline) {
+          this.#llmCalls++;
+          this.#llmInTokens += estimateTokens(`${r.system ?? ""} ${r.user ?? ""}`);
+          this.#llmOutTokens += estimateTokens(res);
+        }
+        return res;
       },
     };
     const contextBlock = this.#env.context.contextBlock("");
@@ -179,6 +188,22 @@ export class Session {
         const dur = Math.max(0, e.tsEnd - e.tsStart);
         if (e.speaker === "rep") this.#talk.repMs += dur;
         else this.#talk.prospectMs += dur;
+
+        // No prospect audio → coverage can never fill (slots need prospect speech).
+        // Surface it once instead of silently showing 0/8, so the setup gets fixed.
+        if (
+          this.#mode === "live" &&
+          !this.#warnedNoProspect &&
+          this.#talk.prospectMs === 0 &&
+          this.#talk.repMs > 25000
+        ) {
+          this.#warnedNoProspect = true;
+          this.#send({
+            type: "status",
+            text: "No prospect audio detected — reshare your meeting tab and tick “Share tab audio”. Coverage needs the prospect's voice.",
+            level: "warn",
+          });
+        }
 
         const sig = this.#coach.ingest(e);
         if (sig) this.#send({ type: "coaching", signal: sig });
@@ -395,7 +420,32 @@ export class Session {
         speculativeHits: this.#specHits,
         echoesSuppressed: this.#bus.suppressedEchoes,
         llmCalls: this.#llmCalls,
+        ...this.#usage(),
       },
+    };
+  }
+
+  /** Usage + estimated cost for this call. Deepgram streams two channels (mic +
+   *  prospect) for the call duration; tokens are the accumulated estimate. */
+  #usage(): {
+    deepgramSeconds: number;
+    llmInputTokens: number;
+    llmOutputTokens: number;
+    estimatedCostUsd: number;
+  } {
+    const durationSec = (this.#engine?.callTimeMs ?? 0) / 1000;
+    const deepgramSeconds = this.#mode === "live" ? Math.round(durationSec * 2) : 0;
+    const cost = estimateCostUsd({
+      deepgramSeconds,
+      llmInputTokens: this.#llmInTokens,
+      llmOutputTokens: this.#llmOutTokens,
+      model: this.#config.models.questionGen,
+    });
+    return {
+      deepgramSeconds,
+      llmInputTokens: this.#llmInTokens,
+      llmOutputTokens: this.#llmOutTokens,
+      estimatedCostUsd: cost.totalUsd,
     };
   }
 
@@ -410,7 +460,10 @@ export class Session {
       analysis = analyzeCallHeuristic(record); // fall back on any model error
     }
     record.analysis = analysis;
-    if (record.perf) record.perf.llmCalls = this.#llmCalls; // include the analysis call
+    if (record.perf) {
+      record.perf.llmCalls = this.#llmCalls; // include the analysis call
+      Object.assign(record.perf, this.#usage()); // refresh tokens + cost with the analysis pass
+    }
     this.#lastRecord = record;
     if (this.#mode === "live" && this.#env.settings.get().autoSave !== false) {
       try {

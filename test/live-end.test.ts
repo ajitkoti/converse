@@ -25,6 +25,7 @@ function fakeDriveClient(): DriveClient & { puts: string[] } {
     readFile: async () => "{}",
     readFileBinary: async () => Buffer.from(""),
     listFolder: async () => [],
+    deleteFile: async () => {},
   };
 }
 

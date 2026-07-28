@@ -40,7 +40,7 @@ export class DriveDb {
   #client: DriveClient;
   #rootName: string;
   #parentId?: string;
-  #ids: Partial<Record<TypeKey | "root", string>> = {};
+  #ids: Partial<Record<TypeKey | "root" | "context", string>> = {};
 
   constructor(client: DriveClient, opts: { rootName?: string; parentId?: string } = {}) {
     this.#client = client;
@@ -86,6 +86,42 @@ export class DriveDb {
   async putRecording(id: string, content: string | Buffer, mimeType = "audio/webm"): Promise<{ id: string; link: string }> {
     const t = await this.#tree();
     return this.#client.putFile({ name: `${id}.webm`, mimeType, content }, t.recordings);
+  }
+
+  // ---- shared Context library (team-wide battlecards) -----------------------
+  // Context docs live in a Context/ folder next to the by-type folders, so a
+  // team pointed at the same Drive folder shares one playbook. Always mirrored
+  // from local; when Drive is off these calls simply aren't made (local-only).
+
+  async #contextFolder(): Promise<string> {
+    await this.#tree(); // ensures root
+    if (!this.#ids.context) this.#ids.context = await this.#client.ensureFolder("Context", this.#ids.root!);
+    return this.#ids.context;
+  }
+
+  /** Upload/replace one context doc (overwrites in place). */
+  async putContextDoc(name: string, text: string): Promise<void> {
+    const folder = await this.#contextFolder();
+    await this.#client.putFile({ name: `${name}.md`, mimeType: "text/markdown", content: text }, folder);
+  }
+
+  /** Remove a context doc from Drive (no-op if absent). */
+  async deleteContextDoc(name: string): Promise<void> {
+    const folder = await this.#contextFolder();
+    const hit = await this.#client.findFile(`${name}.md`, folder);
+    if (hit) await this.#client.deleteFile(hit.id);
+  }
+
+  /** Every context doc stored in Drive (name + text). */
+  async listContextDocs(): Promise<Array<{ name: string; text: string }>> {
+    const folder = await this.#contextFolder();
+    const files = await this.#client.listFolder(folder);
+    const out: Array<{ name: string; text: string }> = [];
+    for (const f of files) {
+      if (!f.name.endsWith(".md")) continue;
+      out.push({ name: f.name.replace(/\.md$/, ""), text: await this.#client.readFile(f.id) });
+    }
+    return out;
   }
 
   /** List every call the Sessions folder knows about, with which artifacts exist. */
