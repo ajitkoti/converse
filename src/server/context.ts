@@ -46,6 +46,11 @@ export class ContextLibrary {
     return this.#docs.map((d) => ({ name: d.name, chars: d.text.length }));
   }
 
+  /** Full text of one doc by name, or null if it isn't in the library. */
+  get(name: string): string | null {
+    return this.#docs.find((d) => d.name === name)?.text ?? null;
+  }
+
   get count(): number {
     return this.#docs.length;
   }

@@ -76,6 +76,13 @@ describe("ContextLibrary", () => {
   it("returns undefined when empty", () => {
     expect(new ContextLibrary(tmp).contextBlock("anything")).toBeUndefined();
   });
+
+  it("get(name) returns a doc's full text, or null when missing", () => {
+    fs.writeFileSync(path.join(tmp, "battlecard.md"), "# Battlecard\n- edge: speed");
+    const lib = new ContextLibrary(tmp);
+    expect(lib.get("battlecard")).toContain("edge: speed");
+    expect(lib.get("does-not-exist")).toBeNull();
+  });
 });
 
 describe("SessionStore + summary", () => {

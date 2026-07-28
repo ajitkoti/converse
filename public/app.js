@@ -862,10 +862,23 @@ function sparkline(vals) {
 function renderContext() {
   const list = $("context-list");
   list.innerHTML = state.context.length
-    ? state.context.map((d) => `<div class="card-row"><div class="grow"><b>${escapeHtml(d.name)}</b> <span class="meta-dim">${d.chars} chars</span></div><button class="icon-btn" data-del="${escapeHtml(d.name)}">delete</button></div>`).join("")
+    ? state.context.map((d) => `<div class="card-row"><button class="ctx-open grow" data-open="${escapeHtml(d.name)}" title="Open to view / edit"><b>${escapeHtml(d.name)}</b> <span class="meta-dim">${d.chars} chars</span></button><button class="icon-btn" data-del="${escapeHtml(d.name)}">delete</button></div>`).join("")
     : `<div class="meta-dim">No context docs yet. Add battlecards, product notes, ICP — the copilot grounds questions in them.</div>`;
+  for (const b of list.querySelectorAll("[data-open]"))
+    b.addEventListener("click", () => openContextDoc(b.dataset.open));
   for (const b of list.querySelectorAll("[data-del]"))
     b.addEventListener("click", async () => { state = { ...state, ...(await api.post("/api/context/delete", { name: b.dataset.del })) }; renderContext(); });
+}
+async function openContextDoc(name) {
+  const r = await api.get(`/api/context/get?name=${encodeURIComponent(name)}`);
+  if (r && typeof r.text === "string") {
+    $("ctx-name").value = r.name;
+    $("ctx-text").value = r.text;
+    $("ctx-name").scrollIntoView({ behavior: "smooth", block: "center" });
+    $("ctx-text").focus();
+  } else {
+    toast(r?.error || "Could not open that doc.", "warn");
+  }
 }
 
 // ---------- Settings ----------
