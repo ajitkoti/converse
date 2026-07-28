@@ -55,6 +55,29 @@ describe("QualificationEngine — Phase 3 escalation + suggestion", () => {
     expect(h.suggestions[0]?.question.length).toBeGreaterThan(0);
   });
 
+  it("attaches ranked 'cover next' alternatives (primary excluded, capped at maxCards-1)", async () => {
+    const h = makeEngine({
+      budgets: {
+        metrics: { escalateBy: 5 },
+        identifyPain: { escalateBy: 8 },
+        economicBuyer: { escalateBy: 10 },
+        decisionCriteria: { escalateBy: 12 },
+      },
+    });
+    await feed(h.engine, [
+      ev("prospect", "we are still just figuring things out to be honest", 16, 20),
+      marker("prospect", 20.5),
+    ]);
+    expect(h.suggestions.length).toBe(1);
+    const s = h.suggestions[0]!;
+    expect(s.slotId).toBe("metrics"); // most overdue = primary
+    const altIds = (s.alternatives ?? []).map((a) => a.slotId);
+    expect(altIds).not.toContain("metrics"); // primary excluded
+    expect(altIds.length).toBe(2); // capped at maxCards(3) - 1, though 3 others are overdue
+    expect(altIds).toEqual(["identifyPain", "economicBuyer"]); // ranked by how overdue
+    expect(s.alternatives![0]!.label.length).toBeGreaterThan(0);
+  });
+
   it("does NOT fire on a REP pause, even when overdue", async () => {
     const h = makeEngine({ budgets: { identifyPain: { escalateBy: 5 } } });
     await feed(h.engine, [

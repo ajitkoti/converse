@@ -357,8 +357,12 @@ export class QualificationEngine extends EventEmitter {
   }
 
   #mostOverdue(nowSec: number): SlotDef | null {
-    let best: SlotDef | null = null;
-    let bestOverBy = 0;
+    return this.#rankedOverdue(nowSec)[0] ?? null;
+  }
+
+  /** Overdue, uncovered, un-snoozed slots, most-overdue first. */
+  #rankedOverdue(nowSec: number): SlotDef[] {
+    const scored: Array<{ slot: SlotDef; overBy: number }> = [];
     for (const slot of this.#slots) {
       const budget = this.#cfg.budgets[slot.id];
       if (!budget) continue;
@@ -367,12 +371,9 @@ export class QualificationEngine extends EventEmitter {
       const snoozedUntil = this.#snoozedUntilMs[slot.id];
       if (snoozedUntil !== undefined && this.#latestTs < snoozedUntil) continue;
       const overBy = nowSec - budget.escalateBy;
-      if (overBy > 0 && overBy > bestOverBy) {
-        best = slot;
-        bestOverBy = overBy;
-      }
+      if (overBy > 0) scored.push({ slot, overBy });
     }
-    return best;
+    return scored.sort((a, b) => b.overBy - a.overBy).map((s) => s.slot);
   }
 
   /**
@@ -450,8 +451,25 @@ export class QualificationEngine extends EventEmitter {
     const reason = manual
       ? `manual — asked for ${slot.label}`
       : `${slot.label} overdue (>${this.#cfg.budgets[slot.id]?.escalateBy}s), prospect paused`;
+    // The next most-overdue slots after the primary, ranked — shown as secondary
+    // "cover next" cards. Deterministic (no extra LLM call); the overlay can turn
+    // one into a full question on demand via "ask".
+    const alternatives = manual
+      ? []
+      : this.#rankedOverdue(ts / 1000)
+          .filter((s) => s.id !== slot.id)
+          .slice(0, this.#cfg.suggestion.maxCards - 1)
+          .map((s) => ({ slotId: s.id, label: s.label }));
     this.#log.log({ event: "suggest", ts, slot: slot.id, question, latencyMs, speculative });
-    this.emit("guidance", { type: "suggestion", ts, slotId: slot.id, question, reason, latencyMs });
+    this.emit("guidance", {
+      type: "suggestion",
+      ts,
+      slotId: slot.id,
+      question,
+      reason,
+      latencyMs,
+      ...(alternatives.length ? { alternatives } : {}),
+    });
     this.emit("guidance", { type: "metrics", ts, kind: "suggestion", ms: latencyMs, speculative });
   }
 

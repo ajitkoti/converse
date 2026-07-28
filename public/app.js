@@ -286,10 +286,24 @@ function showCard(ev) {
   $("card-slot").textContent = def ? def.label : ev.slotId;
   $("card-reason").textContent = (ev.reason || "").includes("manual") ? "you asked" : "nudge";
   typewrite($("card-q"), ev.question);
+  renderCardAlts(ev.alternatives);
   const card = $("card"); card.classList.remove("hidden");
   requestAnimationFrame(() => card.classList.add("show"));
   if (cardTimer) clearTimeout(cardTimer);
   cardTimer = setTimeout(dismissCard, 25000);
+}
+// Ranked "cover next" chips under the primary nudge. Clicking one asks the engine
+// to generate a full question for that slot (reusing the "ask" path).
+function renderCardAlts(alts) {
+  const el = $("card-alts"); if (!el) return;
+  if (!alts || !alts.length) { el.innerHTML = ""; return; }
+  el.innerHTML = `<div class="alts-label">Cover next</div>` + alts.map((a, i) =>
+    `<button class="alt-chip" data-ask="${escapeHtml(a.slotId)}"><span class="alt-rank">${i + 2}</span>${escapeHtml(a.label)}</button>`).join("");
+  for (const b of el.querySelectorAll("[data-ask]"))
+    b.addEventListener("click", () => {
+      send({ type: "ask", slot: b.dataset.ask });
+      toast(`Generating a question for ${labelOf(b.dataset.ask)}…`, "info");
+    });
 }
 function typewrite(el, text) {
   if (typeTimer) clearInterval(typeTimer);
