@@ -17,3 +17,4 @@ oauth-client.json
 
 # npm pack output
 *.tgz
+.npmrc

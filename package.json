@@ -1,5 +1,5 @@
 {
-  "name": "converse",
+  "name": "converse-copilot",
   "version": "0.1.1",
   "description": "Live Sales Qualification Copilot — a portable, real-time MEDDPICC coverage engine that consumes a transcript event stream and emits guidance events. Designed to plug into project-raven's audio + Deepgram pipeline, but with zero Electron/UI knowledge.",
   "type": "module",
