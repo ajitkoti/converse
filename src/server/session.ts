@@ -270,8 +270,23 @@ export class Session {
       });
     }
     // Live calls default to a proactive, steady cadence so question hints keep
-    // coming as the call flows — the user's Settings still override these.
-    const LIVE_DEFAULTS: ConfigOverride = { suggestion: { proactive: true, cooldownSeconds: 25 } };
+    // coming as the call flows — the user's Settings still override these. The
+    // engine's default budgets are tuned for a full 30-min call (pain overdue at
+    // 900s); for a proactive copilot we want each area to come "due" on a much
+    // tighter, realistic discovery pace so hints actually appear.
+    const LIVE_DEFAULTS: ConfigOverride = {
+      suggestion: { proactive: true, cooldownSeconds: 25 },
+      budgets: {
+        identifyPain: { escalateBy: 45 },
+        metrics: { escalateBy: 90 },
+        decisionCriteria: { escalateBy: 150 },
+        competition: { escalateBy: 180 },
+        decisionProcess: { escalateBy: 210 },
+        economicBuyer: { escalateBy: 240 },
+        champion: { escalateBy: 300 },
+        paperProcess: { escalateBy: 360 },
+      },
+    };
     const fw = frameworkOverride(this.#env.settings.get().framework);
     const liveCfg = loadConfig(
       mergeOverride(mergeOverride(fw ?? {}, LIVE_DEFAULTS), this.#env.settings.configOverride()),
