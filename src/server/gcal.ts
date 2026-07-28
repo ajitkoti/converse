@@ -10,7 +10,7 @@
 
 import * as fs from "node:fs";
 import { google, type calendar_v3 } from "googleapis";
-import { buildOAuthClient, resolveOAuthClientPath, TOKEN_PATH } from "./gdrive.js";
+import { buildOAuthClient, resolveOAuthClientPath, tokenPath } from "./gdrive.js";
 
 export const CALENDAR_SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"];
 
@@ -53,9 +53,9 @@ export class CalendarClient {
   reload(): void {
     try {
       const clientPath = resolveOAuthClientPath();
-      if (clientPath && fs.existsSync(TOKEN_PATH)) {
+      if (clientPath && fs.existsSync(tokenPath())) {
         const oauth = buildOAuthClient(clientPath);
-        oauth.setCredentials(JSON.parse(fs.readFileSync(TOKEN_PATH, "utf8")));
+        oauth.setCredentials(JSON.parse(fs.readFileSync(tokenPath(), "utf8")));
         this.#cal = google.calendar({ version: "v3", auth: oauth });
         this.#connected = true;
         return;
