@@ -26,6 +26,12 @@ OS will warn the first time. This is expected:
 
 - **macOS:** right-click the app → **Open** → **Open** (once). Or after a blocked
   launch: System Settings → Privacy & Security → **Open Anyway**.
+  - **If macOS says the app is “damaged and can’t be opened”** — that's the
+    quarantine flag on an unsigned download, not real corruption. Clear it once:
+    ```bash
+    xattr -cr /Applications/Converse.app
+    ```
+    then open the app normally. (Signed/notarized builds — see below — never show this.)
 - **Windows:** on the blue “Windows protected your PC” screen click
   **More info → Run anyway**.
 
@@ -56,6 +62,9 @@ tab-audio sharing captures the prospect cleanly.
 - **macOS:** double-click **`start-mac.command`**.
 - **Windows:** double-click **`start-windows.bat`**.
 - **Any OS (terminal):** `npm install` then `npm start`.
+- **From npm (no clone):** once published, `npx converse` (or
+  `npm install -g converse && converse`) starts the same web app on
+  **http://localhost:5173**.
 
 It installs dependencies on first run and opens **http://localhost:5173**. For a
 live call, click **Go live**, allow the **mic**, and in the screen-share picker
@@ -83,3 +92,31 @@ npm run dist:win      # → release/*.exe   (run on Windows)
 
 (Each OS builds its own installer; that's why CI uses both a macOS and a Windows
 runner. `npm run app` runs the desktop app locally without packaging.)
+
+## Signed, warning-free installers (optional)
+
+The default CI builds are **unsigned** (hence the one-time security prompts / the
+`xattr` step above). To ship installs with **no warnings**, add these repository
+secrets and CI signs + notarizes automatically — no workflow edits needed:
+
+| Secret | What it is |
+| --- | --- |
+| `CSC_LINK` | base64 of your code-signing cert (`.p12`) — an Apple **Developer ID Application** cert (macOS) or a code-signing cert from a CA (Windows). `base64 -i cert.p12 \| pbcopy` |
+| `CSC_KEY_PASSWORD` | the `.p12` export password |
+| `APPLE_ID` | your Apple ID email (macOS notarization) |
+| `APPLE_APP_SPECIFIC_PASSWORD` | an [app-specific password](https://support.apple.com/en-us/102654) for that Apple ID |
+| `APPLE_TEAM_ID` | your Apple Developer **Team ID** |
+
+Getting the certs is the part only you can do: the macOS **Developer ID** needs an
+[Apple Developer Program](https://developer.apple.com/programs/) membership
+($99/yr); the Windows cert comes from a CA (DigiCert/Sectigo/etc). Once the
+secrets are set, push a build and the `.dmg`/`.exe` come out signed + notarized.
+
+## Publishing to npm
+
+```bash
+npm login        # your npm account
+npm publish      # prepublishOnly runs the build first
+```
+
+Then anyone can `npx converse`.

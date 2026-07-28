@@ -12,7 +12,31 @@
   "engines": {
     "node": ">=20"
   },
+  "bin": {
+    "converse": "bin/converse.mjs"
+  },
+  "files": [
+    "bin",
+    "dist",
+    "public",
+    "context",
+    "electron",
+    "README.md",
+    "INSTALL.md",
+    "GUIDE.md",
+    "ARCHITECTURE.md"
+  ],
+  "keywords": [
+    "sales",
+    "meddpicc",
+    "copilot",
+    "deepgram",
+    "transcription",
+    "discovery-call",
+    "sales-enablement"
+  ],
   "scripts": {
+    "prepublishOnly": "npm run build",
     "start": "node --import tsx src/server/index.ts",
     "dev": "node --import tsx --watch src/server/index.ts",
     "build": "tsc -p tsconfig.build.json && node scripts/copy-assets.mjs",
@@ -52,7 +76,10 @@
         "dmg"
       ],
       "category": "public.app-category.business",
-      "identity": null
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build-assets/entitlements.mac.plist",
+      "entitlementsInherit": "build-assets/entitlements.mac.plist"
     },
     "win": {
       "target": [
