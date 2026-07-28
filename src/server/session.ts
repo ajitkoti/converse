@@ -107,6 +107,7 @@ export class Session {
   #dgProspect: DeepgramLive | null = null;
   #demoTimer: ReturnType<typeof setTimeout> | null = null;
   #stopped = false;
+  #ended = false;
 
   // recording
   #id = "";
@@ -429,6 +430,8 @@ export class Session {
   }
 
   #end(): void {
+    if (this.#ended) return; // runs once, whether reached via demo completion or stop()/ws close
+    this.#ended = true;
     this.#engine?.flush();
     // allow the flush classify to land before snapshotting
     setTimeout(() => {
@@ -488,7 +491,10 @@ export class Session {
     if (this.#demoTimer) clearTimeout(this.#demoTimer);
     this.#dgRep?.finish();
     this.#dgProspect?.finish();
-    this.#engine?.flush();
+    // For a live call, stop() (client "stop" / ws close) is the end of the call:
+    // persist the record, run the post-call debrief, and sync to Drive. #end()
+    // flushes the engine and is guarded so a completed demo can't run it twice.
+    this.#end();
   }
 }
 
