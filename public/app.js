@@ -10,6 +10,7 @@ let audioStop = null;
 let elapsedMs = 0;
 let slotDefs = [];
 let statusBySlot = {};
+let prevStatusBySlot = {}; // last-rendered status per slot, to flash on change
 let slotsData = {}; // full SlotStates for the inspector
 let talk = { repMs: 0, prospectMs: 0 };
 let currentSlot = null;
@@ -158,6 +159,7 @@ function handle(msg) {
 
 // ---------- Overlay ----------
 function buildRail() {
+  prevStatusBySlot = {}; // new call → don't flash the initial seed
   const rail = $("rail"); rail.innerHTML = "";
   for (const s of slotDefs) {
     const row = document.createElement("div");
@@ -188,6 +190,15 @@ function refreshRail() {
     row.classList.toggle("partial", st === "partial");
     row.classList.toggle("covered", st === "covered");
     row.classList.toggle("overdue", s.id === mostOverdue);
+    // Flash the card when its status advances, so live progress catches the eye.
+    const prev = prevStatusBySlot[s.id];
+    if (prev !== undefined && prev !== st && (st === "partial" || st === "covered")) {
+      row.classList.remove("flash");
+      void row.offsetWidth; // restart the animation if it's already running
+      row.classList.add(st === "covered" ? "flash-covered" : "flash-partial", "flash");
+      setTimeout(() => row.classList.remove("flash", "flash-covered", "flash-partial"), 900);
+    }
+    prevStatusBySlot[s.id] = st;
   }
 }
 function updateScore() {

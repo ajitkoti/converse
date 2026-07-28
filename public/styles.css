@@ -124,6 +124,15 @@ html, body {
 .slot.covered .slot-label { color: #a7f3d0; }
 .slot.overdue .slot-label { color: var(--amber); }
 
+/* Flash a card the moment its status advances (partial/covered) — noticeable, brief. */
+@keyframes flashPop { 0% { transform: scale(1); } 35% { transform: scale(1.5); } 100% { transform: scale(1); } }
+@keyframes flashRingGreen { 0% { box-shadow: 0 0 0 0 rgba(52,211,153,0.75); } 100% { box-shadow: 0 0 0 14px rgba(52,211,153,0); } }
+@keyframes flashRingAmber { 0% { box-shadow: 0 0 0 0 rgba(251,191,36,0.75); } 100% { box-shadow: 0 0 0 14px rgba(251,191,36,0); } }
+.slot.flash.flash-covered .dot { animation: flashPop 0.55s ease-out, flashRingGreen 0.9s ease-out; }
+.slot.flash.flash-partial .dot { animation: flashPop 0.55s ease-out, flashRingAmber 0.9s ease-out; }
+.slot.flash .slot-label { animation: labelFlash 0.9s ease-out; }
+@keyframes labelFlash { 30% { color: var(--text); text-shadow: 0 0 8px currentColor; } }
+
 /* Caption */
 .caption {
   position: absolute; bottom: 26px; left: 50%; transform: translateX(-50%);
