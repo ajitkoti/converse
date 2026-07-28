@@ -235,6 +235,8 @@ input:focus, textarea:focus { outline: none; border-color: rgba(99,102,241,0.6);
 .meta-dim { color: var(--dim); font-size: 12.5px; }
 .row-actions { display: flex; gap: 10px; align-items: center; margin-top: 14px; flex-wrap: wrap; }
 .card-row .grow { flex: 1; }
+.ctx-open { text-align: left; background: transparent; border: 0; color: var(--text); cursor: pointer; font: inherit; padding: 0; }
+.ctx-open:hover b { color: var(--accent-2); text-decoration: underline; }
 .icon-btn { background: transparent; border: 0; color: var(--dim); cursor: pointer; font-size: 13px; }
 .icon-btn:hover { color: #ff9b9b; }
 

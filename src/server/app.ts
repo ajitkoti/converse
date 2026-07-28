@@ -316,6 +316,12 @@ export async function startServer(opts: ServerOptions): Promise<RunningServer> {
         settings.update(await readJson(req));
         return json(200, publicSettings(settings.get()));
       }
+      if (req.method === "GET" && p === "/api/context/get") {
+        const name = url.searchParams.get("name") ?? "";
+        const text = context.get(name);
+        if (text === null) return json(404, { error: "No such context doc." });
+        return json(200, { name, text });
+      }
       if (req.method === "POST" && p === "/api/context/reload") {
         context.reload();
         return json(200, { context: context.list() });
