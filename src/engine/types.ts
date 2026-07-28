@@ -74,6 +74,8 @@ export type GuidanceEvent =
       reason: string;
       /** ms the LLM generation took */
       latencyMs: number;
+      /** next most-overdue slots after the primary, ranked — shown as secondary "cover next" cards */
+      alternatives?: Array<{ slotId: SlotId; label: string }>;
     }
   | {
       type: "suggestion-dropped";

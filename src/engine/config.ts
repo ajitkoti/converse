@@ -54,6 +54,8 @@ export interface EngineConfig {
     snoozeSeconds: number;
     speculative: boolean;
     prewarmMinGapSeconds: number;
+    /** max suggestion cards shown at once: 1 primary + (maxCards-1) ranked "cover next" */
+    maxCards: number;
   };
   slots: SlotDef[];
   budgets: Record<string, SlotBudget>;

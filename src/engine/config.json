@@ -31,7 +31,8 @@
     "maxOutputTokens": 200,
     "snoozeSeconds": 300,
     "speculative": true,
-    "prewarmMinGapSeconds": 3
+    "prewarmMinGapSeconds": 3,
+    "maxCards": 3
   },
 
   "slots": [
