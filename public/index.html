@@ -240,6 +240,41 @@
         <p class="sub">Everything Converse does, and how to use it. Click a section to expand.</p>
 
         <details class="help-card" open>
+          <summary>⚙️ Pre-setup (do this once)</summary>
+          <div class="help-body">
+            <p>Nothing is needed to try a <b>Demo</b>. For real calls, set these up once — all in <b>Settings</b>, no files or terminal required. Keys are stored locally (<code>converse.config.json</code>), never shown back, and only ever sent to the provider you chose.</p>
+
+            <p><b>1 · Deepgram key</b> <span class="hint">(required for live calls — it transcribes your audio)</span><br/>
+              Create a key at <a href="https://console.deepgram.com" target="_blank" rel="noopener">console.deepgram.com</a> (Sign up → <b>API Keys → Create a Key</b>; new accounts include free credit), then paste it into <b>Settings → Deepgram API key</b>.</p>
+
+            <p><b>2 · AI key</b> <span class="hint">(optional — sharper live questions + the AI debrief &amp; pre-call brief)</span><br/>
+              Pick <b>one</b>, paste the key, and set <b>Settings → AI provider</b> to match:</p>
+            <ul>
+              <li><b>Anthropic (Claude)</b> — <a href="https://console.anthropic.com" target="_blank" rel="noopener">console.anthropic.com</a> → <b>API Keys</b>.</li>
+              <li><b>OpenAI (GPT)</b> — <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener">platform.openai.com/api-keys</a>.</li>
+            </ul>
+            <p class="hint">No AI key? Everything still works on the built-in offline engine — suggestions and debriefs are deterministic and clearly labelled (not "AI").</p>
+
+            <p><b>3 · Google Drive + Calendar</b> <span class="hint">(optional — a shared call database; one sign-in also enables the Calendar pre-call picker)</span></p>
+            <p>Google requires a one-time <b>OAuth client</b> — there's no way around it — but <b>only one person sets it up</b>; after that everyone just pastes that JSON once and clicks <b>Connect</b>. In <a href="https://console.cloud.google.com" target="_blank" rel="noopener">Google Cloud Console</a> (pick/create a project):</p>
+            <ol>
+              <li><b>Enable the APIs</b> — APIs &amp; Services → <b>Library</b> → enable <b>Google Drive API</b> <i>and</i> <b>Google Calendar API</b>. <span class="hint">(Skipping this is the <code>accessNotConfigured</code> 403.)</span></li>
+              <li><b>Authorise your account</b> — APIs &amp; Services → <b>OAuth consent screen</b> (newer UI: <b>Google Auth Platform → Audience</b>). Either <b>Publish app</b> (recommended — no per-user list), or add your Gmail under <b>Test users</b>. <span class="hint">(Otherwise: <i>access_denied — app is being tested</i>.)</span></li>
+              <li><b>Create the client</b> — <b>Credentials → Create Credentials → OAuth client ID → Desktop app</b> → <b>Download JSON</b>. <span class="hint">Don't delete this client later, or you'll get <i>deleted_client</i>.</span></li>
+            </ol>
+            <p><b>In the app:</b> <b>Settings → Google Drive</b> → <b>paste that JSON</b> → <b>Connect Google Drive</b> → sign in. A personal Gmail sees a one-time <b>"Google hasn't verified this app" → Advanced → Continue</b> — expected for a self-hosted app. Turn on <b>Sync finished calls to Google Drive</b> to file every call. Changing it later? Use <b>Replace OAuth client</b>. <span class="hint">Prefer the terminal? Set <code>GOOGLE_OAUTH_CLIENT</code> in <code>.env</code> and run <code>npm run connect-drive</code>.</span></p>
+            <details class="help-inner"><summary>Drive sign-in failing? Quick fixes</summary>
+              <ul>
+                <li><b>401 deleted_client</b> — the client in your JSON was deleted. Make a new Desktop-app client, paste the fresh JSON (the <code>client_id</code> should change), don't delete it.</li>
+                <li><b>403 access_denied (being tested)</b> — Publish the app, or add your Gmail as a Test user in the <i>same project</i>; wait a few minutes to propagate.</li>
+                <li><b>"Drive API has not been used…" 403</b> — enable the Drive API (step 1) for that project.</li>
+                <li><b>Wrong project</b> — the JSON's <code>project_id</code> must match the project where you enabled the APIs and published the consent screen.</li>
+              </ul>
+            </details>
+          </div>
+        </details>
+
+        <details class="help-card">
           <summary>🚀 Getting started</summary>
           <div class="help-body">
             <p><b>Demo (no setup):</b> on <b>Home</b>, click <b>Demo · strong call</b> to watch the areas fill green, or <b>Demo · rough call</b> to see the copilot nudge you. Demos replay a scripted call in under a minute — no keys, no mic.</p>
@@ -399,11 +434,9 @@
         </details>
 
         <details class="help-card">
-          <summary>💾 Google Drive &amp; Slack setup</summary>
+          <summary>💬 Slack export</summary>
           <div class="help-body">
-            <p><b>Drive (sign in from the app):</b> in Google Cloud create an OAuth client (<b>Desktop app</b>) and download its JSON. Then, in <b>Settings → Google Drive</b>, <b>paste that JSON</b> once and click <b>Connect Google Drive</b> — you'll sign in with Google in your browser, no <code>.env</code> and no terminal. (You can still set <code>GOOGLE_OAUTH_CLIENT</code> in <code>.env</code>, or use <code>npm run connect-drive</code>, if you prefer.)</p>
-            <p>Google requires that one-time OAuth client — there's no way around it — but only one person sets it up (paste or bundle it once); after that every user just clicks <b>Connect</b> and signs in. Personal Gmail accounts will see a one-time "unverified app → continue" screen; that's expected for a self-hosted app.</p>
-            <p><b>Slack:</b> create an incoming webhook and paste its URL into <b>Settings → Slack webhook URL</b>. Then use <b>Slack</b> on the summary.</p>
+            <p>Create an <b>incoming webhook</b> in Slack and paste its URL into <b>Settings → Slack webhook URL</b>. Then hit <b>Slack</b> on any call summary to post it to that channel.</p>
           </div>
         </details>
       </section>

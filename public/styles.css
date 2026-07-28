@@ -435,8 +435,12 @@ input:focus, textarea:focus { outline: none; border-color: rgba(99,102,241,0.6);
 .help-card[open] > summary::before { transform: rotate(90deg); }
 .help-body { padding: 2px 0 16px; color: var(--muted); font-size: 14px; line-height: 1.6; }
 .help-body p { margin: 0 0 10px; }
-.help-body ul { margin: 0 0 10px; padding-left: 18px; }
+.help-body ul, .help-body ol { margin: 0 0 10px; padding-left: 20px; }
 .help-body li { margin-bottom: 6px; }
+.help-body a { color: var(--accent-2); }
+.help-body .hint { color: var(--dim); font-size: 12.5px; }
+.help-inner { border: 1px solid var(--stroke); border-radius: 10px; padding: 2px 12px; margin: 4px 0 6px; background: rgba(255,255,255,0.02); }
+.help-inner > summary { cursor: pointer; font-weight: 600; font-size: 13px; padding: 8px 0; color: var(--amber); }
 .help-body code { background: rgba(255,255,255,0.08); padding: 1px 5px; border-radius: 5px; font-size: 12.5px; }
 .help-body b { color: var(--text); }
 .chip-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin: 0 2px; }
