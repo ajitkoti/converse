@@ -69,22 +69,25 @@ async function init() {
     setTimeout(startTour, 400); // first-run walkthrough
   }
 }
+let showClientSetup = false; // user asked to (re)enter the OAuth client
 function renderDriveConnect() {
   const d = state.drive || {};
   const btn = $("drive-connect"); const note = $("drive-connect-note");
   const setup = $("oauth-client-setup");
+  const replace = $("oauth-client-replace");
   if (!btn) return;
+  const configured = d.connected || d.canWebConnect;
   if (d.connected) {
     btn.style.display = "none"; note.textContent = `Connected (${d.method}).`;
-    if (setup) setup.classList.add("hidden");
   } else if (d.canWebConnect) {
     btn.style.display = ""; btn.disabled = false; note.textContent = "Sign in to enable Drive export.";
-    if (setup) setup.classList.add("hidden");
   } else {
-    // No OAuth client yet — hide the (useless) button and show the one-time paste box.
     btn.style.display = "none"; note.textContent = "";
-    if (setup) setup.classList.remove("hidden");
   }
+  // Paste box: always when unconfigured; on demand ("Replace") when one exists.
+  if (setup) setup.classList.toggle("hidden", configured && !showClientSetup);
+  // Offer "Replace OAuth client" only when one is already configured.
+  if (replace) replace.classList.toggle("hidden", !configured);
 }
 async function connectDrive() {
   const r = await api.get("/api/drive/connect");
@@ -99,6 +102,7 @@ async function saveOAuthClient() {
   if (r.ok) {
     if (ta) ta.value = "";
     if (note) note.textContent = "";
+    showClientSetup = false;
     toast("OAuth client saved — now click Connect Google Drive.", "info");
     state = await api.get("/api/state");
     renderDrivePill();
@@ -1057,6 +1061,7 @@ $("export-drive").addEventListener("click", () => { send({ type: "export-drive" 
 $("settings-save").addEventListener("click", saveSettings);
 $("drive-connect").addEventListener("click", connectDrive);
 $("oauth-client-save")?.addEventListener("click", saveOAuthClient);
+$("oauth-client-replace")?.addEventListener("click", () => { showClientSetup = true; renderDriveConnect(); $("oauth-client-json")?.focus(); });
 $("tp-skip").addEventListener("click", endTour);
 $("tp-back").addEventListener("click", () => { if (tourStep > 0) { tourStep--; renderTourStep(); } });
 $("tp-next").addEventListener("click", () => { if (tourStep < TOUR.length - 1) { tourStep++; renderTourStep(); } else endTour(); });
