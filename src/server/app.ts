@@ -385,7 +385,13 @@ export async function startServer(opts: ServerOptions): Promise<RunningServer> {
     }
   }
 
-  const wss = new WebSocketServer({ server });
+  // noServer mode: the WSS never binds a port itself, so it can't emit an
+  // unhandled EADDRINUSE during startup — that would crash before listen()'s
+  // port-retry runs. We forward HTTP upgrades to it after the server is bound.
+  const wss = new WebSocketServer({ noServer: true });
+  server.on("upgrade", (req, socket, head) => {
+    wss.handleUpgrade(req, socket, head, (ws) => wss.emit("connection", ws, req));
+  });
   wss.on("connection", (ws: WebSocket) => {
     const send = (msg: ServerToClient) => {
       if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(msg));
