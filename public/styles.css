@@ -169,6 +169,19 @@ html, body {
 }
 .alt-chip:hover { border-color: rgba(34,211,238,0.5); color: var(--text); background: rgba(34,211,238,0.08); }
 .alt-rank { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: rgba(255,255,255,0.08); font-size: 11px; color: var(--dim); }
+/* Full "also ask" cards (proactive multi-card mode) */
+.card-alts:has(.alt-card) { flex-direction: column; align-items: stretch; }
+.alt-card { text-align: left; background: rgba(34,211,238,0.06); border: 1px solid rgba(34,211,238,0.28); border-radius: 12px; padding: 9px 12px; cursor: pointer; transition: border-color 0.15s, background 0.15s; }
+.alt-card:hover { border-color: rgba(34,211,238,0.6); background: rgba(34,211,238,0.12); }
+.alt-card-slot { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent-2); margin-bottom: 3px; }
+.alt-card-q { font-size: 15px; line-height: 1.35; color: var(--text); }
+/* Flash the suggestion panel when a fresh batch arrives */
+@keyframes cardFlash {
+  0% { box-shadow: var(--shadow), 0 0 0 0 rgba(99,102,241,0.55); }
+  40% { box-shadow: var(--shadow), 0 0 0 8px rgba(99,102,241,0.35); }
+  100% { box-shadow: var(--shadow), 0 0 40px rgba(99,102,241,0.15); }
+}
+.card.flash-card { animation: cardFlash 0.7s ease-out; }
 .card-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px; }
 .btn {
   background: rgba(99, 102, 241, 0.16); color: #c7d2fe;

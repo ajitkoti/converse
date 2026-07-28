@@ -275,16 +275,16 @@ export class Session {
     // 900s); for a proactive copilot we want each area to come "due" on a much
     // tighter, realistic discovery pace so hints actually appear.
     const LIVE_DEFAULTS: ConfigOverride = {
-      suggestion: { proactive: true, cooldownSeconds: 25 },
+      suggestion: { proactive: true, cooldownSeconds: 20, maxCards: 3 },
       budgets: {
-        identifyPain: { escalateBy: 45 },
-        metrics: { escalateBy: 90 },
-        decisionCriteria: { escalateBy: 150 },
-        competition: { escalateBy: 180 },
-        decisionProcess: { escalateBy: 210 },
-        economicBuyer: { escalateBy: 240 },
-        champion: { escalateBy: 300 },
-        paperProcess: { escalateBy: 360 },
+        identifyPain: { escalateBy: 20 },
+        metrics: { escalateBy: 40 },
+        decisionCriteria: { escalateBy: 70 },
+        competition: { escalateBy: 90 },
+        decisionProcess: { escalateBy: 110 },
+        economicBuyer: { escalateBy: 130 },
+        champion: { escalateBy: 160 },
+        paperProcess: { escalateBy: 190 },
       },
     };
     const fw = frameworkOverride(this.#env.settings.get().framework);

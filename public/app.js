@@ -313,16 +313,22 @@ function showCard(ev) {
   renderCardAlts(ev.alternatives);
   const card = $("card"); card.classList.remove("hidden");
   requestAnimationFrame(() => card.classList.add("show"));
+  // Flash the whole panel so a fresh batch of hints catches the eye.
+  card.classList.remove("flash-card"); void card.offsetWidth; card.classList.add("flash-card");
   if (cardTimer) clearTimeout(cardTimer);
   cardTimer = setTimeout(dismissCard, 25000);
 }
-// Ranked "cover next" chips under the primary nudge. Clicking one asks the engine
-// to generate a full question for that slot (reusing the "ask" path).
+// Ranked "cover next" cards under the primary nudge. In proactive mode each carries
+// a full question (shown as its own card); otherwise a label chip. Click → ask that slot.
 function renderCardAlts(alts) {
   const el = $("card-alts"); if (!el) return;
   if (!alts || !alts.length) { el.innerHTML = ""; return; }
-  el.innerHTML = `<div class="alts-label">Cover next</div>` + alts.map((a, i) =>
-    `<button class="alt-chip" data-ask="${escapeHtml(a.slotId)}"><span class="alt-rank">${i + 2}</span>${escapeHtml(a.label)}</button>`).join("");
+  const withQ = alts.some((a) => a.question);
+  el.innerHTML = withQ
+    ? `<div class="alts-label">Also ask</div>` + alts.map((a) =>
+        `<button class="alt-card" data-ask="${escapeHtml(a.slotId)}"><div class="alt-card-slot">${escapeHtml(a.label)}</div><div class="alt-card-q">${escapeHtml(a.question || "")}</div></button>`).join("")
+    : `<div class="alts-label">Cover next</div>` + alts.map((a, i) =>
+        `<button class="alt-chip" data-ask="${escapeHtml(a.slotId)}"><span class="alt-rank">${i + 2}</span>${escapeHtml(a.label)}</button>`).join("");
   for (const b of el.querySelectorAll("[data-ask]"))
     b.addEventListener("click", () => {
       send({ type: "ask", slot: b.dataset.ask });
