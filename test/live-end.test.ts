@@ -51,6 +51,7 @@ describe("live call end (stop)", () => {
       driveDb: new DriveDb(client, {}),
     });
 
+    session.start({ mode: "live" }); // no Deepgram key → #startLive no-ops, but mode is "live"
     session.stop();
 
     // #end() snapshots after a short delay, then runs the async analysis + Drive sync.
@@ -75,6 +76,7 @@ describe("live call end (stop)", () => {
       driveDb: new DriveDb(client, {}),
     });
 
+    session.start({ mode: "live" });
     session.stop();
     session.stop(); // e.g. client "stop" followed by ws close
     await new Promise((r) => setTimeout(r, 900));

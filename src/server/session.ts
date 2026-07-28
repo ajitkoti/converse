@@ -412,7 +412,7 @@ export class Session {
     record.analysis = analysis;
     if (record.perf) record.perf.llmCalls = this.#llmCalls; // include the analysis call
     this.#lastRecord = record;
-    if (this.#env.settings.get().autoSave !== false) {
+    if (this.#mode === "live" && this.#env.settings.get().autoSave !== false) {
       try {
         this.#env.store.save(record);
       } catch {
@@ -420,8 +420,8 @@ export class Session {
       }
     }
     this.#send({ type: "analysis", id: record.id, analysis });
-    // Mirror the finished call (with analysis) into Drive when it's the DB.
-    if (this.#env.settings.get().driveSync !== false && this.#env.driveDb?.connected()) {
+    // Mirror the finished call (with analysis) into Drive when it's the DB — live only.
+    if (this.#mode === "live" && this.#env.settings.get().driveSync !== false && this.#env.driveDb?.connected()) {
       this.#env.driveDb
         .storeCall(record)
         .then((res) => this.#send({ type: "drive", ok: true, files: Object.entries(res.links).map(([name, link]) => ({ name, link })) }))
@@ -438,7 +438,9 @@ export class Session {
       const record = this.#buildRecord();
       this.#lastRecord = record;
       let saved = false;
-      if (this.#env.settings.get().autoSave !== false) {
+      // Demos are ephemeral try-outs: never persisted, never counted as real data,
+      // never synced to Drive. Only real (live) calls become part of the record.
+      if (this.#mode === "live" && this.#env.settings.get().autoSave !== false) {
         try {
           this.#env.store.save(record);
           saved = true;
