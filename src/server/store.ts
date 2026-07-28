@@ -149,11 +149,17 @@ export class SessionStore {
     let suggestions = 0;
     let llmCalls = 0;
     let live = 0;
+    let deepgramSeconds = 0;
+    let llmTokens = 0;
+    let costUsd = 0;
     for (const r of all) {
       const total = r.slotDefs.length || 1;
       coverageSum += coveredCount(r) / total;
       suggestions += r.suggestions.length;
       llmCalls += r.perf?.llmCalls ?? 0;
+      deepgramSeconds += r.perf?.deepgramSeconds ?? 0;
+      llmTokens += (r.perf?.llmInputTokens ?? 0) + (r.perf?.llmOutputTokens ?? 0);
+      costUsd += r.perf?.estimatedCostUsd ?? 0;
       if (r.mode === "live") live++;
       repMs += r.talk?.repMs ?? 0;
       prospectMs += r.talk?.prospectMs ?? 0;
@@ -169,6 +175,9 @@ export class SessionStore {
       avgCoveragePct: n ? Math.round((coverageSum / n) * 100) : 0,
       totalSuggestions: suggestions,
       totalLlmCalls: llmCalls,
+      totalDeepgramSeconds: deepgramSeconds,
+      totalLlmTokens: llmTokens,
+      totalEstimatedCostUsd: Math.round(costUsd * 1e4) / 1e4,
       totalTalkMs: { repMs, prospectMs },
       slotCoverage: [...slotAgg.entries()].map(([id, v]) => ({
         id,

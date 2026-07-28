@@ -52,6 +52,11 @@ export interface SessionRecord {
     speculativeHits: number;
     echoesSuppressed: number;
     llmCalls: number;
+    /** usage + estimated cost (all approximate — see pricing.ts) */
+    deepgramSeconds?: number;
+    llmInputTokens?: number;
+    llmOutputTokens?: number;
+    estimatedCostUsd?: number;
   };
   analysis?: CallAnalysis;
 }
@@ -88,6 +93,10 @@ export interface Analytics {
   avgCoveragePct: number;
   totalSuggestions: number;
   totalLlmCalls: number;
+  /** usage + estimated cost across all calls (approximate — see pricing.ts) */
+  totalDeepgramSeconds: number;
+  totalLlmTokens: number;
+  totalEstimatedCostUsd: number;
   totalTalkMs: { repMs: number; prospectMs: number };
   /** per-slot: how often it ended covered */
   slotCoverage: Array<{ id: string; label: string; coveredPct: number }>;

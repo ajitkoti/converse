@@ -48,6 +48,10 @@ class FakeDrive implements DriveClient {
   async listFolder(folderId: string): Promise<DriveEntry[]> {
     return [...this.files.entries()].filter(([, f]) => f.folder === folderId).map(([id, f]) => ({ id, name: f.name }));
   }
+  async deleteFile(fileId: string): Promise<void> {
+    this.files.delete(fileId);
+    this.folders.delete(fileId);
+  }
   /** files sitting in the folder named `folderName` */
   filesInType(folderName: string): string[] {
     const folderId = [...this.folders.entries()].find(([, f]) => f.name === folderName)?.[0];
@@ -193,6 +197,23 @@ describe("DriveDb.analyzeRecording", () => {
 
   it("returns null when neither a record nor a recording exists", async () => {
     expect(await db.analyzeRecording("ghost", deps("x"))).toBeNull();
+  });
+});
+
+describe("DriveDb shared context library", () => {
+  it("stores, lists, and deletes context docs in a Context/ folder", async () => {
+    const fake = new FakeDrive();
+    const db = new DriveDb(fake, { rootName: "Root" });
+    await db.putContextDoc("battlecard-vs-workday", "# Battlecard\n- edge: speed");
+    await db.putContextDoc("case-study", "northwind saved 10h/wk");
+
+    expect(new Set(fake.filesInType("Context"))).toEqual(new Set(["battlecard-vs-workday.md", "case-study.md"]));
+    const docs = await db.listContextDocs();
+    expect(docs.map((d) => d.name).sort()).toEqual(["battlecard-vs-workday", "case-study"]);
+    expect(docs.find((d) => d.name === "case-study")?.text).toContain("northwind");
+
+    await db.deleteContextDoc("case-study");
+    expect(fake.filesInType("Context")).toEqual(["battlecard-vs-workday.md"]);
   });
 });
 

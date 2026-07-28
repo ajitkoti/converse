@@ -74,6 +74,8 @@ export interface DriveClient {
   readFileBinary(fileId: string): Promise<Buffer>;
   /** list files directly inside a folder */
   listFolder(folderId: string): Promise<DriveEntry[]>;
+  /** permanently delete a file/folder by id */
+  deleteFile(fileId: string): Promise<void>;
 }
 
 export function buildOAuthClient(clientJsonPath: string, redirectOverride?: string): OAuth2Client {

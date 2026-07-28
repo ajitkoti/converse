@@ -473,6 +473,7 @@ function renderSummary(rec, opts = {}) {
     ...(p ? [
       coachTile((p.avgNudgeMs || 0) + "ms", `nudge latency${p.speculativeHits ? " · " + p.speculativeHits + "⚡" : ""}`, false),
       coachTile((p.avgClassifierMs || 0) + "ms", "classifier latency", false),
+      ...(p.estimatedCostUsd != null ? [coachTile(fmtUsd(p.estimatedCostUsd), `est. cost · ${Math.round((p.deepgramSeconds || 0) / 60)}m · ${fmtTokens((p.llmInputTokens || 0) + (p.llmOutputTokens || 0))} tok`, false)] : []),
     ] : []),
   ].join("");
 
@@ -859,6 +860,7 @@ async function loadDashboard() {
     tile(a.liveCalls, "live calls"),
     tile(a.totalSuggestions, "nudges surfaced"),
     tile(a.totalLlmCalls ?? 0, "LLM calls"),
+    tile(fmtUsd(a.totalEstimatedCostUsd ?? 0), "est. cost", `~${Math.round((a.totalDeepgramSeconds ?? 0) / 60)} min Deepgram · ${fmtTokens(a.totalLlmTokens ?? 0)} tokens — estimate`),
   ].join("");
   $("slot-coverage").innerHTML = a.slotCoverage.length
     ? a.slotCoverage.map((s) => `<div class="cov-row"><span>${s.label}</span><span class="track"><i style="width:${s.coveredPct}%"></i></span><span class="pct">${s.coveredPct}%</span></div>`).join("")
@@ -868,7 +870,9 @@ async function loadDashboard() {
     ? `<div class="tm-bar" style="width:100%;height:12px"><i style="width:${repPct}%"></i><b style="width:${100 - repPct}%"></b></div><div class="lg" style="margin-top:6px">you ${repPct}% · prospect ${100 - repPct}%</div>`
     : `<div class="meta-dim">No live-call talk data yet.</div>`;
 }
-function tile(n, l) { return `<div class="tile"><div class="n">${n}</div><div class="l">${l}</div></div>`; }
+function tile(n, l, title) { return `<div class="tile"${title ? ` title="${title}"` : ""}><div class="n">${n}</div><div class="l">${l}</div></div>`; }
+function fmtUsd(n) { return n >= 1 ? "$" + n.toFixed(2) : n > 0 ? "$" + n.toFixed(3) : "$0"; }
+function fmtTokens(n) { return n >= 1e6 ? (n / 1e6).toFixed(1) + "M" : n >= 1e3 ? Math.round(n / 1e3) + "k" : String(n); }
 function sparkline(vals) {
   if (!vals.length) return `<div class="meta-dim">Not enough calls yet.</div>`;
   const w = 320, h = 64, pad = 6;
@@ -1066,6 +1070,13 @@ $("ctx-save").addEventListener("click", async () => {
   $("ctx-name").value = ""; $("ctx-text").value = ""; renderContext();
 });
 $("ctx-reload").addEventListener("click", async () => { state = { ...state, ...(await api.post("/api/context/reload", {})) }; renderContext(); });
+$("ctx-sync")?.addEventListener("click", async () => {
+  const r = await api.post("/api/context/sync", {});
+  if (r.error) { toast(r.error, "warn"); return; }
+  state = { ...state, context: r.context };
+  toast(`Synced ${r.pulled ?? 0} doc(s) from Drive.`, "info");
+  renderContext();
+});
 document.addEventListener("keydown", (e) => {
   if (overlay.classList.contains("hidden")) return;
   const typing = /^(INPUT|TEXTAREA)$/.test(document.activeElement?.tagName || "");

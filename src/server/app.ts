@@ -86,6 +86,21 @@ export async function startServer(opts: ServerOptions): Promise<RunningServer> {
   const driveDb = new DriveDb(drive, { parentId: settings.get().driveFolderId || env.GDRIVE_FOLDER_ID });
   const calendar = new CalendarClient();
 
+  // Best-effort: pull the team's shared Drive context library on startup, so a
+  // teammate pointed at the same folder gets everyone's battlecards locally.
+  if (driveDb.connected()) {
+    driveDb
+      .listContextDocs()
+      .then((docs) => {
+        for (const d of docs) {
+          const safe = d.name.replace(/[^a-zA-Z0-9 _-]/g, "").trim();
+          if (safe) fs.writeFileSync(path.join(opts.contextDir, `${safe}.md`), d.text);
+        }
+        if (docs.length) context.reload();
+      })
+      .catch(() => {});
+  }
+
   /** Re-analyze a stored record: LLM when a key is set, else the heuristic. */
   async function analyzeRecord(record: import("./types.js").SessionRecord) {
     const s = settings.get();
@@ -331,6 +346,8 @@ export async function startServer(opts: ServerOptions): Promise<RunningServer> {
         const safe = String(name).replace(/[^a-zA-Z0-9 _-]/g, "").trim() || "note";
         fs.writeFileSync(path.join(opts.contextDir, `${safe}.md`), String(text ?? ""));
         context.reload();
+        // Mirror to the shared Drive library when connected (local always wins as source).
+        if (driveDb.connected()) driveDb.putContextDoc(safe, String(text ?? "")).catch(() => {});
         return json(200, { context: context.list() });
       }
       if (req.method === "POST" && p === "/api/context/delete") {
@@ -339,7 +356,23 @@ export async function startServer(opts: ServerOptions): Promise<RunningServer> {
         const f = path.join(opts.contextDir, `${safe}.md`);
         if (f.startsWith(opts.contextDir) && fs.existsSync(f)) fs.unlinkSync(f);
         context.reload();
+        if (driveDb.connected()) driveDb.deleteContextDoc(safe).catch(() => {});
         return json(200, { context: context.list() });
+      }
+      if (req.method === "POST" && p === "/api/context/sync") {
+        // Pull the team's shared Drive context library into the local dir, then reload.
+        if (!driveDb.connected()) return json(400, { error: "Google Drive is not connected." });
+        try {
+          const docs = await driveDb.listContextDocs();
+          for (const d of docs) {
+            const safe = d.name.replace(/[^a-zA-Z0-9 _-]/g, "").trim();
+            if (safe) fs.writeFileSync(path.join(opts.contextDir, `${safe}.md`), d.text);
+          }
+          context.reload();
+          return json(200, { context: context.list(), pulled: docs.length });
+        } catch (err) {
+          return json(500, { error: `Drive context sync failed: ${String(err)}` });
+        }
       }
       return json(404, { error: "unknown endpoint" });
     } catch (err) {
