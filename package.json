@@ -76,10 +76,7 @@
         "dmg"
       ],
       "category": "public.app-category.business",
-      "hardenedRuntime": true,
-      "gatekeeperAssess": false,
-      "entitlements": "build-assets/entitlements.mac.plist",
-      "entitlementsInherit": "build-assets/entitlements.mac.plist"
+      "identity": null
     },
     "win": {
       "target": [

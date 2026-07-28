@@ -109,8 +109,16 @@ secrets and CI signs + notarizes automatically — no workflow edits needed:
 
 Getting the certs is the part only you can do: the macOS **Developer ID** needs an
 [Apple Developer Program](https://developer.apple.com/programs/) membership
-($99/yr); the Windows cert comes from a CA (DigiCert/Sectigo/etc). Once the
-secrets are set, push a build and the `.dmg`/`.exe` come out signed + notarized.
+($99/yr); the Windows cert comes from a CA (DigiCert/Sectigo/etc).
+
+> **One-line activation for macOS signing:** the default config ships
+> `mac.identity: null` (forces unsigned, so CI always produces a working build).
+> When your Developer ID cert + the secrets above are in place, remove that line
+> and add `"hardenedRuntime": true` with
+> `"entitlements": "build-assets/entitlements.mac.plist"` (the entitlements file is
+> already included). This last step is validated against the real cert. Windows
+> signing needs no config change — it activates as soon as `CSC_LINK` is a Windows
+> cert.
 
 ## Publishing to npm
 
