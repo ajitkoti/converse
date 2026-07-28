@@ -32,7 +32,8 @@
     "snoozeSeconds": 300,
     "speculative": true,
     "prewarmMinGapSeconds": 3,
-    "maxCards": 3
+    "maxCards": 3,
+    "proactive": false
   },
 
   "slots": [

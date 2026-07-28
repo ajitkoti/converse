@@ -88,6 +88,19 @@ describe("QualificationEngine — Phase 3 escalation + suggestion", () => {
     expect(h.suggestions.length).toBe(0);
   });
 
+  it("proactive mode fires on a REP pause too (keeps hints coming as the call flows)", async () => {
+    const h = makeEngine({
+      budgets: { identifyPain: { escalateBy: 5 } },
+      suggestion: { proactive: true },
+    });
+    await feed(h.engine, [
+      ev("rep", "so let me walk you through how our pricing works for teams", 6, 9),
+      marker("rep", 9.5), // a REP pause — would NOT fire in default (sparse) mode
+    ]);
+    expect(h.suggestions.length).toBe(1);
+    expect(h.suggestions[0]?.slotId).toBe("identifyPain");
+  });
+
   it("never fires mid-utterance — only on an UtteranceEnd marker", async () => {
     const h = makeEngine({ budgets: { identifyPain: { escalateBy: 5 } } });
     // Interim + final content while overdue, but no pause marker yet.

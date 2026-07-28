@@ -269,8 +269,13 @@ export class Session {
         level: "warn",
       });
     }
+    // Live calls default to a proactive, steady cadence so question hints keep
+    // coming as the call flows — the user's Settings still override these.
+    const LIVE_DEFAULTS: ConfigOverride = { suggestion: { proactive: true, cooldownSeconds: 25 } };
     const fw = frameworkOverride(this.#env.settings.get().framework);
-    const liveCfg = loadConfig(mergeOverride(fw ?? {}, this.#env.settings.configOverride()));
+    const liveCfg = loadConfig(
+      mergeOverride(mergeOverride(fw ?? {}, LIVE_DEFAULTS), this.#env.settings.configOverride()),
+    );
     this.#buildEngine(llm, liveCfg, "live");
 
     this.#dgRep = this.#makeDeepgram("rep");

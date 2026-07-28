@@ -116,6 +116,9 @@ export class QualificationEngine extends EventEmitter {
         // so coverage updates in near-real-time instead of waiting for the tick.
         this.#maybeClassifyAdaptive();
         this.#maybeSuggest();
+      } else if (this.#cfg.suggestion.proactive) {
+        // Proactive mode: also offer a hint on the rep's pauses.
+        this.#maybeSuggest();
       }
       return;
     }
@@ -307,9 +310,10 @@ export class QualificationEngine extends EventEmitter {
   // ---- escalation + question generation (Phase 3) ---------------------------
 
   #maybeSuggest(): void {
-    // Rule 2 already partly satisfied (prospect utteranceEnd). Require the last
-    // actual speaker to be the prospect too.
-    if (this.#lastFinalSpeaker !== "prospect") return;
+    // By default only nudge into a real PROSPECT pause (sparse mode). In proactive
+    // mode we also fire on the rep's pauses, so the copilot keeps offering
+    // question hints as the call flows even when the prospect channel is quiet.
+    if (!this.#cfg.suggestion.proactive && this.#lastFinalSpeaker !== "prospect") return;
     if (this.#suggestionInFlight) return;
 
     const nowSec = this.#latestTs / 1000;

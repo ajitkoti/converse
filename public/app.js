@@ -39,6 +39,10 @@ $("theme-toggle").addEventListener("click", () =>
   applyTheme(document.documentElement.dataset.theme === "light" ? "dark" : "light"));
 
 // ---------- Views ----------
+// Top-level views that get their own URL (#/home, #/history, …). Transient views
+// like the post-call summary are intentionally not deep-linkable.
+const ROUTABLE = ["home", "history", "cloud", "dashboard", "scorecard", "precall", "context", "settings"];
+let routingFromHash = false;
 function showView(name) {
   for (const v of document.querySelectorAll(".view")) v.classList.add("hidden");
   $(`view-${name}`).classList.remove("hidden");
@@ -51,7 +55,21 @@ function showView(name) {
   if (name === "precall") initPrecall();
   if (name === "scorecard") loadScorecard();
   if (name === "cloud") loadCloud();
+  // Reflect the view in the URL so pages are deep-linkable + back/forward works.
+  if (!routingFromHash && ROUTABLE.includes(name) && location.hash !== `#/${name}`) {
+    location.hash = `#/${name}`;
+  }
 }
+function routeFromHash() {
+  const name = location.hash.replace(/^#\/?/, "") || "home";
+  if (!ROUTABLE.includes(name)) return; // ignore unknown / transient routes
+  if (overlay && !overlay.classList.contains("hidden")) return; // don't yank out of a live call
+  routingFromHash = true;
+  showApp();
+  showView(name);
+  routingFromHash = false;
+}
+window.addEventListener("hashchange", routeFromHash);
 function showApp() { nav.classList.remove("hidden"); mainEl.classList.remove("hidden"); overlay.classList.add("hidden"); }
 function showOverlayScreen() { nav.classList.add("hidden"); mainEl.classList.add("hidden"); overlay.classList.remove("hidden"); }
 
@@ -65,6 +83,8 @@ async function init() {
     toast("✅ Google Drive connected.", "info");
     history.replaceState({}, "", location.pathname);
     showView("settings");
+  } else if (location.hash && ROUTABLE.includes(location.hash.replace(/^#\/?/, ""))) {
+    routeFromHash(); // deep link → open that view directly
   } else if (!localStorage.getItem("converse-tour-done")) {
     setTimeout(startTour, 400); // first-run walkthrough
   }
@@ -601,21 +621,46 @@ async function copySummary() {
 let historyCache = [];
 async function loadHistory(homeOnly) {
   const { sessions } = await api.get("/api/history");
-  historyCache = sessions;
-  const recent = sessions.slice(0, 4);
+  let merged = sessions.map((s) => ({ ...s, source: "local" }));
+  // Also surface calls stored in Drive that aren't saved locally (team/other machines).
+  if (state.drive && state.drive.connected) {
+    try {
+      const drive = await api.get("/api/drive/calls");
+      if (drive.connected && Array.isArray(drive.calls)) {
+        const localIds = new Set(sessions.map((s) => s.id));
+        for (const c of drive.calls) {
+          if (localIds.has(c.id)) continue;
+          merged.push({ id: c.id, startedAt: c.modifiedTime || c.id, source: "drive", mode: "drive",
+            durationMs: 0, covered: 0, total: 8, suggestions: 0,
+            hasAnalysis: c.hasAnalysis, hasTranscript: c.hasTranscript, hasRecording: c.hasRecording });
+        }
+      }
+    } catch { /* Drive is optional */ }
+  }
+  merged.sort((a, b) => String(b.startedAt).localeCompare(String(a.startedAt)));
+  historyCache = merged;
+  const recent = merged.slice(0, 4);
   $("home-recent").innerHTML = recent.length ? `<div class="meta-dim">Recent sessions</div>` + recent.map(rowHtml).join("") : "";
   bindRows($("home-recent"));
   if (homeOnly) return;
-  renderHistoryList(sessions);
+  renderHistoryList(merged);
 }
+function whenLabel(v) { const d = new Date(v); return isNaN(d) ? String(v) : d.toLocaleString(); }
 function renderHistoryList(sessions) {
   $("history-list").innerHTML = sessions.length ? sessions.map(rowHtml).join("") : `<div class="meta-dim">No sessions yet — run a demo or a live call.</div>`;
   bindRows($("history-list"));
 }
 function rowHtml(s) {
+  if (s.source === "drive") {
+    const bits = ["☁ Drive", s.hasAnalysis && "analysis", s.hasTranscript && "transcript", s.hasRecording && "recording"].filter(Boolean).join(" · ");
+    return `<div class="rec-card" data-id="${escapeHtml(s.id)}" data-src="drive">
+      <div class="grow"><div>${escapeHtml(whenLabel(s.startedAt))}</div>
+      <div class="meta-dim">${bits}</div></div>
+      <div class="cov meta-dim">☁</div></div>`;
+  }
   const pct = Math.round((s.covered / s.total) * 100);
-  return `<div class="rec-card" data-id="${s.id}">
-    <div class="grow"><div>${new Date(s.startedAt).toLocaleString()}</div>
+  return `<div class="rec-card" data-id="${s.id}" data-src="local">
+    <div class="grow"><div>${whenLabel(s.startedAt)}</div>
     <div class="meta-dim">${s.mode} · ${fmt(s.durationMs)} · ${s.suggestions} nudge(s)</div></div>
     <div class="cov-bar"><i style="width:${pct}%"></i></div>
     <div class="cov meta-dim">${s.covered}/${s.total}</div>
@@ -625,8 +670,12 @@ function bindRows(container) {
   for (const row of container.querySelectorAll(".rec-card")) {
     row.addEventListener("click", async (e) => {
       if (e.target.closest("[data-del]")) return;
-      const rec = await api.get(`/api/session?id=${encodeURIComponent(row.dataset.id)}`);
+      const id = row.dataset.id;
+      const rec = row.dataset.src === "drive"
+        ? await api.get(`/api/drive/record?id=${encodeURIComponent(id)}`)
+        : await api.get(`/api/session?id=${encodeURIComponent(id)}`);
       if (rec && rec.id) { lastRecord = rec; renderSummary(rec, { live: false, saved: true }); showView("summary"); }
+      else if (rec && rec.error) toast(rec.error, "warn");
     });
   }
   for (const b of container.querySelectorAll("[data-del]")) {
