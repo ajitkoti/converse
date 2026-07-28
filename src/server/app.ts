@@ -16,7 +16,7 @@ import { Session, type ServerToClient } from "./session.js";
 import { Settings, type UserSettings } from "./settings.js";
 import { ContextLibrary } from "./context.js";
 import { SessionStore } from "./store.js";
-import { DriveExporter, buildOAuthClient, oauthClientConfigured, resolveOAuthClientPath, saveOAuthClient, DRIVE_SCOPES, TOKEN_PATH } from "./gdrive.js";
+import { DriveExporter, buildOAuthClient, oauthClientConfigured, resolveOAuthClientPath, saveOAuthClient, setConfigDir, tokenPath, DRIVE_SCOPES } from "./gdrive.js";
 import { DriveDb } from "./drive-db.js";
 import { CalendarClient, CALENDAR_SCOPES } from "./gcal.js";
 import { analyzeCallLLM, analyzeCallHeuristic } from "./analysis.js";
@@ -78,6 +78,11 @@ export async function startServer(opts: ServerOptions): Promise<RunningServer> {
   const env = opts.env ?? {};
   fs.mkdirSync(opts.contextDir, { recursive: true });
   fs.mkdirSync(opts.logsDir, { recursive: true });
+
+  // Runtime state we WRITE (Drive token, pasted OAuth client) must go to a
+  // writable dir — the packaged app's cwd is the read-only bundle. Use the same
+  // dir as the settings file (repo root in dev, userData in the Electron app).
+  setConfigDir(path.dirname(opts.settingsFile));
 
   const settings = new Settings(opts.settingsFile);
   const context = new ContextLibrary(opts.contextDir);
@@ -188,7 +193,7 @@ export async function startServer(opts: ServerOptions): Promise<RunningServer> {
         try {
           const oauth = buildOAuthClient(clientPath, callbackUrl(req));
           const { tokens } = await oauth.getToken(code);
-          fs.writeFileSync(TOKEN_PATH, JSON.stringify(tokens, null, 2));
+          fs.writeFileSync(tokenPath(), JSON.stringify(tokens, null, 2));
           drive.reload();
           calendar.reload();
           res.writeHead(302, { Location: "/?drive=connected" }).end();

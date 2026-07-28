@@ -19,6 +19,7 @@
  */
 
 import * as fs from "node:fs";
+import * as path from "node:path";
 import { Readable } from "node:stream";
 import { google, type drive_v3 } from "googleapis";
 import type { OAuth2Client } from "google-auth-library";
@@ -34,6 +35,26 @@ export function toMediaBody(content: string | Buffer): string | Readable {
 
 export const DRIVE_SCOPES = ["https://www.googleapis.com/auth/drive"];
 export const TOKEN_PATH = ".gdrive-token.json";
+
+/**
+ * Directory for per-user state the app WRITES at runtime — the Drive token and a
+ * pasted OAuth client. Defaults to cwd (fine for the dev server / CLI, which run
+ * in the writable repo). The packaged Electron app's cwd is the READ-ONLY app
+ * bundle, so the host sets this to a writable dir (userData) via setConfigDir —
+ * otherwise saving the token/client fails with EROFS.
+ */
+let configDir = ".";
+export function setConfigDir(dir: string): void {
+  configDir = dir;
+}
+/** Writable path to the saved Drive OAuth token. */
+export function tokenPath(): string {
+  return path.join(configDir, TOKEN_PATH);
+}
+/** Writable path to a pasted OAuth client. */
+export function pastedClientPath(): string {
+  return path.join(configDir, OAUTH_CLIENT_PASTED);
+}
 
 /** Flags that make every Files API call work inside Shared Drives too. */
 const ALL_DRIVES = { supportsAllDrives: true, includeItemsFromAllDrives: true } as const;
@@ -101,7 +122,12 @@ export const OAUTH_CLIENT_BUNDLED = "oauth-client.json";
 
 /** Resolve the OAuth client json path from env → pasted → bundled; undefined if none. */
 export function resolveOAuthClientPath(): string | undefined {
-  const candidates = [process.env.GOOGLE_OAUTH_CLIENT, OAUTH_CLIENT_PASTED, OAUTH_CLIENT_BUNDLED];
+  const candidates = [
+    process.env.GOOGLE_OAUTH_CLIENT,
+    pastedClientPath(),
+    path.join(configDir, OAUTH_CLIENT_BUNDLED),
+    OAUTH_CLIENT_BUNDLED, // cwd fallback (dev: drop it in the repo)
+  ];
   return candidates.find((p): p is string => !!p && fs.existsSync(p));
 }
 
@@ -128,7 +154,8 @@ export function saveOAuthClient(rawJson: string): void {
       "Missing an 'installed' or 'web' block with client_id/client_secret. In Google Cloud Console → Credentials, create an OAuth client (Desktop app) and download its JSON.",
     );
   }
-  fs.writeFileSync(OAUTH_CLIENT_PASTED, JSON.stringify(parsed, null, 2));
+  fs.mkdirSync(configDir, { recursive: true });
+  fs.writeFileSync(pastedClientPath(), JSON.stringify(parsed, null, 2));
 }
 
 export class DriveExporter implements DriveClient {
@@ -147,9 +174,9 @@ export class DriveExporter implements DriveClient {
   #init(): void {
     try {
       const clientPath = resolveOAuthClientPath();
-      if (clientPath && fs.existsSync(TOKEN_PATH)) {
+      if (clientPath && fs.existsSync(tokenPath())) {
         const oauth = buildOAuthClient(clientPath);
-        oauth.setCredentials(JSON.parse(fs.readFileSync(TOKEN_PATH, "utf8")));
+        oauth.setCredentials(JSON.parse(fs.readFileSync(tokenPath(), "utf8")));
         this.#drive = google.drive({ version: "v3", auth: oauth });
         this.#status = { connected: true, method: "oauth" };
         return;

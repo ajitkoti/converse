@@ -6,6 +6,7 @@ import {
   saveOAuthClient,
   resolveOAuthClientPath,
   oauthClientConfigured,
+  setConfigDir,
   OAUTH_CLIENT_PASTED,
   OAUTH_CLIENT_BUNDLED,
 } from "../src/server/gdrive.js";
@@ -25,6 +26,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  setConfigDir("."); // reset the module-level writable dir between tests
   process.chdir(cwd);
   if (envClient === undefined) delete process.env.GOOGLE_OAUTH_CLIENT;
   else process.env.GOOGLE_OAUTH_CLIENT = envClient;
@@ -73,5 +75,17 @@ describe("OAuth client resolution", () => {
   it("falls back to a bundled client when nothing else is set", () => {
     fs.writeFileSync(OAUTH_CLIENT_BUNDLED, validClient);
     expect(resolveOAuthClientPath()).toBe(OAUTH_CLIENT_BUNDLED);
+  });
+
+  it("writes the pasted client to the configured writable dir, not cwd (packaged-app EROFS fix)", () => {
+    const writable = path.join(tmp, "userData");
+    fs.mkdirSync(writable, { recursive: true });
+    setConfigDir(writable);
+    saveOAuthClient(validClient);
+    // Landed in the writable dir, not the (read-only-in-prod) cwd.
+    expect(fs.existsSync(path.join(writable, OAUTH_CLIENT_PASTED))).toBe(true);
+    expect(fs.existsSync(path.join(process.cwd(), OAUTH_CLIENT_PASTED))).toBe(false);
+    expect(resolveOAuthClientPath()).toBe(path.join(writable, OAUTH_CLIENT_PASTED));
+    expect(oauthClientConfigured()).toBe(true);
   });
 });
