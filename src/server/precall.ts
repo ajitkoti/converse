@@ -56,11 +56,13 @@ function pickLastCall(store: SessionStore, opts: BriefOptions): SessionRecord | 
   if (!all.length) return null;
   const needle = `${opts.persona ?? ""} ${opts.account ?? ""}`.toLowerCase().trim();
   if (needle) {
+    // Persona/account given: only a call that actually matches counts as "last call".
+    // Otherwise report no prior call — never pass off an unrelated call as this deal's history.
     const matches = all.filter((r) => {
       const hay = `${r.persona ?? ""} ${r.notes ?? ""}`.toLowerCase();
       return needle.split(/\s+/).some((w) => w.length > 2 && hay.includes(w));
     });
-    if (matches.length) return matches[matches.length - 1]!;
+    return matches.length ? matches[matches.length - 1]! : null;
   }
   return all[all.length - 1]!;
 }

@@ -77,6 +77,8 @@ export interface CallAnalysis {
   budget: string;
   keyDecisions: string[];
   sentiment: { overall: "positive" | "neutral" | "negative"; rationale: string };
+  /** How this debrief was produced: a real LLM pass, or the deterministic offline heuristic. */
+  generatedBy: "llm" | "offline";
 }
 
 /** Aggregate stats across all saved sessions, for the dashboard. */

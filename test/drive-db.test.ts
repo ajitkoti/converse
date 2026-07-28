@@ -74,7 +74,7 @@ function rec(over: Partial<SessionRecord> = {}): SessionRecord {
 
 const analysis = (tag: string): CallAnalysis => ({
   wentWell: [tag], didntGoWell: [], improvements: [], followUpEmail: "hi", missedOpportunities: [],
-  redFlags: [], budget: "n/a", keyDecisions: [], sentiment: { overall: "neutral", rationale: tag },
+  redFlags: [], budget: "n/a", keyDecisions: [], sentiment: { overall: "neutral", rationale: tag }, generatedBy: "offline",
 });
 
 let fake: FakeDrive;

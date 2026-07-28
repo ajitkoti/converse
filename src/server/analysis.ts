@@ -108,6 +108,7 @@ export function analyzeCallHeuristic(r: SessionRecord): CallAnalysis {
     budget,
     keyDecisions: keyDecisions.length ? keyDecisions : ["Not clearly established."],
     sentiment: { overall, rationale: `Coverage ${Math.round(coveragePct * 100)}%, ${objections.length} objection(s).` },
+    generatedBy: "offline",
   };
 }
 
@@ -127,5 +128,6 @@ function normalize(p: Partial<CallAnalysis>): CallAnalysis {
     budget: typeof p.budget === "string" ? p.budget : "Not established.",
     keyDecisions: arr(p.keyDecisions),
     sentiment: { overall, rationale: typeof s.rationale === "string" ? s.rationale : "" },
+    generatedBy: "llm",
   };
 }

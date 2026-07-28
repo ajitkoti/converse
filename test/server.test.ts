@@ -21,8 +21,7 @@ function sampleRecord(): SessionRecord {
     id: makeSessionId(new Date("2026-07-27T10:00:00Z"), "abcd"),
     startedAt: "2026-07-27T10:00:00.000Z",
     endedAt: "2026-07-27T10:03:00.000Z",
-    mode: "demo",
-    fixture: "good-call",
+    mode: "live",
     durationMs: 115000,
     slotDefs: [
       { id: "identifyPain", label: "Pain", escalateBy: 900 },

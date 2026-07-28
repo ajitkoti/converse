@@ -53,6 +53,7 @@ export class SessionStore {
     for (const f of files) {
       try {
         const r = JSON.parse(fs.readFileSync(path.join(this.#dir, f), "utf8")) as SessionRecord;
+        if (r.mode === "demo") continue; // demos are try-outs, never real history
         const covered = r.slotDefs.filter(
           (s) => r.slots[s.id as keyof typeof r.slots]?.status === "covered",
         ).length;
@@ -128,7 +129,9 @@ export class SessionStore {
     const out: SessionRecord[] = [];
     for (const f of files) {
       try {
-        out.push(JSON.parse(fs.readFileSync(path.join(this.#dir, f), "utf8")) as SessionRecord);
+        const r = JSON.parse(fs.readFileSync(path.join(this.#dir, f), "utf8")) as SessionRecord;
+        if (r.mode === "demo") continue; // demos never count as real data (briefs, scorecard, analytics)
+        out.push(r);
       } catch {
         /* skip */
       }
