@@ -275,6 +275,14 @@ export async function startServer(opts: ServerOptions): Promise<RunningServer> {
         const record = analysis ? null : await driveDb.getRecord(id);
         return json(200, { id, analysis, hasRecord: Boolean(analysis || record) });
       }
+      // Full stored record from Drive, so History can open a Drive-only call.
+      if (req.method === "GET" && p === "/api/drive/record") {
+        if (!driveDb.connected()) return json(400, { error: "Drive not connected" });
+        const id = url.searchParams.get("id") ?? "";
+        const record = await driveDb.getRecord(id);
+        if (!record) return json(404, { error: "No record in Drive for this call." });
+        return json(200, record);
+      }
       if (req.method === "POST" && p === "/api/drive/refresh") {
         if (!driveDb.connected()) return json(400, { error: "Drive not connected" });
         const { id } = await readJson<{ id: string }>(req);

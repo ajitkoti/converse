@@ -169,6 +169,19 @@ html, body {
 }
 .alt-chip:hover { border-color: rgba(34,211,238,0.5); color: var(--text); background: rgba(34,211,238,0.08); }
 .alt-rank { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: rgba(255,255,255,0.08); font-size: 11px; color: var(--dim); }
+/* Full "also ask" cards (proactive multi-card mode) */
+.card-alts:has(.alt-card) { flex-direction: column; align-items: stretch; }
+.alt-card { text-align: left; background: rgba(34,211,238,0.06); border: 1px solid rgba(34,211,238,0.28); border-radius: 12px; padding: 9px 12px; cursor: pointer; transition: border-color 0.15s, background 0.15s; }
+.alt-card:hover { border-color: rgba(34,211,238,0.6); background: rgba(34,211,238,0.12); }
+.alt-card-slot { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent-2); margin-bottom: 3px; }
+.alt-card-q { font-size: 15px; line-height: 1.35; color: var(--text); }
+/* Flash the suggestion panel when a fresh batch arrives */
+@keyframes cardFlash {
+  0% { box-shadow: var(--shadow), 0 0 0 0 rgba(99,102,241,0.55); }
+  40% { box-shadow: var(--shadow), 0 0 0 8px rgba(99,102,241,0.35); }
+  100% { box-shadow: var(--shadow), 0 0 40px rgba(99,102,241,0.15); }
+}
+.card.flash-card { animation: cardFlash 0.7s ease-out; }
 .card-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px; }
 .btn {
   background: rgba(99, 102, 241, 0.16); color: #c7d2fe;
@@ -435,8 +448,12 @@ input:focus, textarea:focus { outline: none; border-color: rgba(99,102,241,0.6);
 .help-card[open] > summary::before { transform: rotate(90deg); }
 .help-body { padding: 2px 0 16px; color: var(--muted); font-size: 14px; line-height: 1.6; }
 .help-body p { margin: 0 0 10px; }
-.help-body ul { margin: 0 0 10px; padding-left: 18px; }
+.help-body ul, .help-body ol { margin: 0 0 10px; padding-left: 20px; }
 .help-body li { margin-bottom: 6px; }
+.help-body a { color: var(--accent-2); }
+.help-body .hint { color: var(--dim); font-size: 12.5px; }
+.help-inner { border: 1px solid var(--stroke); border-radius: 10px; padding: 2px 12px; margin: 4px 0 6px; background: rgba(255,255,255,0.02); }
+.help-inner > summary { cursor: pointer; font-weight: 600; font-size: 13px; padding: 8px 0; color: var(--amber); }
 .help-body code { background: rgba(255,255,255,0.08); padding: 1px 5px; border-radius: 5px; font-size: 12.5px; }
 .help-body b { color: var(--text); }
 .chip-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin: 0 2px; }

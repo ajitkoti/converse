@@ -116,6 +116,9 @@ export class QualificationEngine extends EventEmitter {
         // so coverage updates in near-real-time instead of waiting for the tick.
         this.#maybeClassifyAdaptive();
         this.#maybeSuggest();
+      } else if (this.#cfg.suggestion.proactive) {
+        // Proactive mode: also offer a hint on the rep's pauses.
+        this.#maybeSuggest();
       }
       return;
     }
@@ -307,9 +310,10 @@ export class QualificationEngine extends EventEmitter {
   // ---- escalation + question generation (Phase 3) ---------------------------
 
   #maybeSuggest(): void {
-    // Rule 2 already partly satisfied (prospect utteranceEnd). Require the last
-    // actual speaker to be the prospect too.
-    if (this.#lastFinalSpeaker !== "prospect") return;
+    // By default only nudge into a real PROSPECT pause (sparse mode). In proactive
+    // mode we also fire on the rep's pauses, so the copilot keeps offering
+    // question hints as the call flows even when the prospect channel is quiet.
+    if (!this.#cfg.suggestion.proactive && this.#lastFinalSpeaker !== "prospect") return;
     if (this.#suggestionInFlight) return;
 
     const nowSec = this.#latestTs / 1000;
@@ -322,6 +326,15 @@ export class QualificationEngine extends EventEmitter {
 
     // Commit: consume the cooldown now so a drop can't be retried every pause.
     this.#lastSuggestionAtMs = this.#latestTs;
+
+    // Proactive multi-card: generate a real question for each of the top-N overdue
+    // slots at once, so the overlay shows 2-3 cards. Sparse mode keeps the single
+    // speculative path below.
+    if (this.#cfg.suggestion.proactive && this.#cfg.suggestion.maxCards > 1) {
+      const top = this.#rankedOverdue(nowSec).slice(0, this.#cfg.suggestion.maxCards);
+      this.#track(this.#runMultiGen(top, this.#latestTs));
+      return;
+    }
 
     // Instant path: if we pre-generated a fresh question for this slot during the
     // prospect's turn, show it immediately (zero perceived latency).
@@ -436,6 +449,35 @@ export class QualificationEngine extends EventEmitter {
       this.#emitDropped(slot.id, "empty-generation", latencyMs, firedAtMs);
     } else {
       this.#emitSuggestion(slot, question, latencyMs, firedAtMs, manual, false);
+    }
+    this.#suggestionInFlight = false;
+  }
+
+  /** Proactive: generate a question for each of the top-N overdue slots in one
+   *  parallel batch and emit them as a primary + ranked "cover next" cards. */
+  async #runMultiGen(slots: SlotDef[], firedAtMs: number): Promise<void> {
+    this.#suggestionInFlight = true;
+    const results = (
+      await Promise.all(slots.map((s) => this.#genQuestion(s).then((r) => ({ slot: s, ...r }))))
+    ).filter((r) => !r.error && r.question);
+    const latencyMs = results.length ? Math.max(...results.map((r) => r.latencyMs)) : 0;
+    if (!results.length) {
+      this.#emitDropped(slots[0]?.id ?? ("" as SlotId), "empty-generation", latencyMs, firedAtMs);
+    } else if (latencyMs > this.#cfg.suggestion.dropIfExceedsMs) {
+      this.#emitDropped(results[0]!.slot.id, "latency-exceeded", latencyMs, firedAtMs);
+    } else {
+      const [primary, ...alts] = results;
+      this.#log.log({ event: "suggest", ts: firedAtMs, slot: primary!.slot.id, question: primary!.question, latencyMs, speculative: false });
+      this.emit("guidance", {
+        type: "suggestion",
+        ts: firedAtMs,
+        slotId: primary!.slot.id,
+        question: primary!.question,
+        reason: `${primary!.slot.label} overdue — proactive`,
+        latencyMs,
+        ...(alts.length ? { alternatives: alts.map((a) => ({ slotId: a.slot.id, label: a.slot.label, question: a.question })) } : {}),
+      });
+      this.emit("guidance", { type: "metrics", ts: firedAtMs, kind: "suggestion", ms: latencyMs, speculative: false });
     }
     this.#suggestionInFlight = false;
   }

@@ -269,8 +269,28 @@ export class Session {
         level: "warn",
       });
     }
+    // Live calls default to a proactive, steady cadence so question hints keep
+    // coming as the call flows — the user's Settings still override these. The
+    // engine's default budgets are tuned for a full 30-min call (pain overdue at
+    // 900s); for a proactive copilot we want each area to come "due" on a much
+    // tighter, realistic discovery pace so hints actually appear.
+    const LIVE_DEFAULTS: ConfigOverride = {
+      suggestion: { proactive: true, cooldownSeconds: 20, maxCards: 3 },
+      budgets: {
+        identifyPain: { escalateBy: 20 },
+        metrics: { escalateBy: 40 },
+        decisionCriteria: { escalateBy: 70 },
+        competition: { escalateBy: 90 },
+        decisionProcess: { escalateBy: 110 },
+        economicBuyer: { escalateBy: 130 },
+        champion: { escalateBy: 160 },
+        paperProcess: { escalateBy: 190 },
+      },
+    };
     const fw = frameworkOverride(this.#env.settings.get().framework);
-    const liveCfg = loadConfig(mergeOverride(fw ?? {}, this.#env.settings.configOverride()));
+    const liveCfg = loadConfig(
+      mergeOverride(mergeOverride(fw ?? {}, LIVE_DEFAULTS), this.#env.settings.configOverride()),
+    );
     this.#buildEngine(llm, liveCfg, "live");
 
     this.#dgRep = this.#makeDeepgram("rep");

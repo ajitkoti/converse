@@ -88,6 +88,38 @@ describe("QualificationEngine — Phase 3 escalation + suggestion", () => {
     expect(h.suggestions.length).toBe(0);
   });
 
+  it("proactive mode fires on a REP pause too (keeps hints coming as the call flows)", async () => {
+    const h = makeEngine({
+      budgets: { identifyPain: { escalateBy: 5 } },
+      suggestion: { proactive: true },
+    });
+    await feed(h.engine, [
+      ev("rep", "so let me walk you through how our pricing works for teams", 6, 9),
+      marker("rep", 9.5), // a REP pause — would NOT fire in default (sparse) mode
+    ]);
+    expect(h.suggestions.length).toBe(1);
+    expect(h.suggestions[0]?.slotId).toBe("identifyPain");
+  });
+
+  it("proactive multi-card: emits a primary + ranked alternatives that each carry a full question", async () => {
+    const h = makeEngine({
+      budgets: { identifyPain: { escalateBy: 5 }, metrics: { escalateBy: 8 }, economicBuyer: { escalateBy: 10 } },
+      suggestion: { proactive: true, maxCards: 3 },
+    });
+    await feed(h.engine, [
+      ev("rep", "let me walk you through pricing and how teams get value", 16, 20),
+      marker("rep", 20.5),
+    ]);
+    expect(h.suggestions.length).toBe(1);
+    const s = h.suggestions[0]!;
+    expect(s.question.length).toBeGreaterThan(0); // primary question
+    expect(s.alternatives?.length).toBe(2); // maxCards - 1
+    for (const a of s.alternatives ?? []) {
+      expect(a.slotId).not.toBe(s.slotId);
+      expect((a.question ?? "").length).toBeGreaterThan(0); // full question, not just a label
+    }
+  });
+
   it("never fires mid-utterance — only on an UtteranceEnd marker", async () => {
     const h = makeEngine({ budgets: { identifyPain: { escalateBy: 5 } } });
     // Interim + final content while overdue, but no pause marker yet.

@@ -56,6 +56,9 @@ export interface EngineConfig {
     prewarmMinGapSeconds: number;
     /** max suggestion cards shown at once: 1 primary + (maxCards-1) ranked "cover next" */
     maxCards: number;
+    /** proactive: also fire on the rep's pauses (not only prospect pauses), so
+     *  hints keep coming as the call flows. Off by default (sparse). */
+    proactive: boolean;
   };
   slots: SlotDef[];
   budgets: Record<string, SlotBudget>;
